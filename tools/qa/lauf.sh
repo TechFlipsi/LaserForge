@@ -81,7 +81,7 @@ echo "1) Bauen:        OK (Log: C:\\Users\\Fabia\\LaserForge\\qa\\build.log)"
 echo "2) Tests:        OK (Log: C:\\Users\\Fabia\\LaserForge\\qa\\test.log)"
 echo "3) GUI-Start:    OK (LaserForge.Desktop.exe in Session 1, PID siehe oben)"
 echo "4) Capture:      PNGs geholt nach $ziel_pngs :"
-ls -l "$ziel_pngs" | awk '{print "   " $9 " (" $5 " Bytes)"}'
+ls -l "$ziel_pngs" | grep -v '^total' | awk 'NF>=9 {print "   " $9 " (" $5 " Bytes)"}'
 echo "5) Blick (Parent): PNGs per Vision pruefen - Fensterinhalt vs. Erwartung (M5-QA)"
 echo "ZYKLUS OK"
 exit 0
