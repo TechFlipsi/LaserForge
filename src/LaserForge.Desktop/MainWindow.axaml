@@ -92,7 +92,7 @@
     <Menu DockPanel.Dock="Top" Height="26" Background="#1C1C1C" FontSize="12">
       <MenuItem Header="Datei"/>
       <MenuItem Header="Bearbeiten"/>
-      <MenuItem Header="Ansicht"/>
+      <MenuItem Header="Anordnen"/>
       <MenuItem Header="Laserwerkzeuge"/>
       <MenuItem Header="Web-Werkzeuge"/>
       <MenuItem Header="Fenster"/>
@@ -267,6 +267,8 @@
               <Path Stroke="#D8D8D8" StrokeThickness="1.2" Data="M1.6 4 H12.4 V10.4 H1.6 Z M4 4 V6.2 M6.4 4 V7.4 M8.8 4 V6.2 M11 4 V7.4"/>
             </Panel>
           </Button>
+          <!-- Gruppentrennung: Erstellungen (oben) | Modifikatoren (unten) — Bibel-Zweispaltenlogik als Trennstrich -->
+          <Border Height="1" Width="30" Background="#3F3F3F" HorizontalAlignment="Center" Margin="2,3"/>
           <Button Classes="werkzeug" ToolTip.Tip="Trimmen">
             <Panel Width="14" Height="14">
               <Ellipse Width="3.4" Height="3.4" Stroke="#D8D8D8" StrokeThickness="1.1" HorizontalAlignment="Left" VerticalAlignment="Bottom" Margin="0.6,0,0,0.6"/>
