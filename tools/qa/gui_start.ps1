@@ -4,11 +4,11 @@
 # Wichtig: /RU Fabia /IT - sonst laeuft der Task in Session 0 (unsichtbar + EXE gesperrt).
 # Exit: 0 = gelungen ; 3 = EXE fehlt ; 4 = schtasks-Fehler ; 5 = Prozess nicht in Session 1
 
-param([string]$ExePath = "")
+param([string]$ExePath = "", [string]$ProcName = "LaserForge.QA", [string]$TaskName = "forge_lf")
 
 $ErrorActionPreference = "Continue"
-$procName = "LaserForge.Desktop"
-$taskName = "forge_lf"
+$procName = $ProcName
+$taskName = $TaskName
 
 # 1) alte Instanz beenden (inkl. Session-0-Zombies)
 taskkill /F /IM ($procName + ".exe") /T 2>$null | Out-Null

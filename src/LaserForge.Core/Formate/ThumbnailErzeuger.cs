@@ -33,30 +33,13 @@ public static class ThumbnailErzeuger
             double verschiebeY = rand + (groesse - 2 * rand - hoehe * maßstab) / 2.0;
             foreach (var z in zuege)
                 for (int i = 1; i < z.Punkte.Count; i++)
-                    LinieZeichnen(grau, groesse,
+                    Geometrie.Rasterer.Linie(grau, groesse,
                         verschiebeX + (z.Punkte[i - 1].X - minX) * maßstab,
                         groesse - (verschiebeY + (z.Punkte[i - 1].Y - minY) * maßstab),
                         verschiebeX + (z.Punkte[i].X - minX) * maßstab,
                         groesse - (verschiebeY + (z.Punkte[i].Y - minY) * maßstab));
         }
         return KonvertiereBasis64(grau, groesse);
-    }
-    /// <summary>Breisenham-Linie ins Grau-Bild (dunkel = Strich).</summary>
-    private static void LinieZeichnen(byte[] bild, int breiteBild, double x0, double y0, double x1, double y1)
-    {
-        int x = (int)Math.Round(x0), y = (int)Math.Round(y0);
-        int xe = (int)Math.Round(x1), ye = (int)Math.Round(y1);
-        int dx = Math.Abs(xe - x), dy = -Math.Abs(ye - y);
-        int sx = x < xe ? 1 : -1, sy = y < ye ? 1 : -1;
-        int fehler = dx + dy;
-        while (true)
-        {
-            if (x >= 0 && y >= 0 && x < breiteBild && y < breiteBild) bild[y * breiteBild + x] = 0;
-            if (x == xe && y == ye) break;
-            int e2 = 2 * fehler;
-            if (e2 >= dy) { fehler += dy; x += sx; }
-            if (e2 <= dx) { fehler += dx; y += sy; }
-        }
     }
     /// <summary>Minimale PNG-Chunks (IHDR/IDAT/IEND) — Graustufe colorType 0, bitDepth 8, kein Filter.</summary>
     private static string KonvertiereBasis64(byte[] grau, int groesse)

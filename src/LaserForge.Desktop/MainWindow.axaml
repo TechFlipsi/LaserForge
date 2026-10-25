@@ -319,7 +319,7 @@
                 <TextBlock Text="Auf Verbindung warten …" FontSize="12" Foreground="#FF6B6B"/>
               </StackPanel>
               <Grid Grid.Row="1" ColumnDefinitions="*,92" Margin="8,6,8,8">
-                <TextBox Grid.Column="0" Watermark="Befehl eingeben…" Height="24" FontSize="11" Background="#2E2E2E" BorderBrush="#4A4A4A" Foreground="#E8E8E8"/>
+                <TextBox Grid.Column="0" PlaceholderText="Befehl eingeben…" Height="24" FontSize="11" Background="#2E2E2E" BorderBrush="#4A4A4A" Foreground="#E8E8E8"/>
                 <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="3" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="6,0,0,0">
                   <TextBlock Text="Alle anzeigen" FontSize="11" Foreground="#D8D8D8"/>
                   <Panel Width="8" Height="9"><Path Stroke="#D8D8D8" StrokeThickness="1.1" Data="M0.5 0.5 L4 4 L7.5 0.5"/></Panel>

@@ -170,6 +170,8 @@ public static class LeserLbrn
                     prims = ZerlegePrims(pl);
                 }
                 pfad.Rohtuege = BaueZuege(vert, prims);
+                pfad.RoheVerte = vert.Select(vv => new PfadVertex(vv.p, vv.c0, vv.c1, vv.smooth)).ToList();
+                pfad.RohePrimse = prims.Select(pp => new PfadPrimitive(pp.Item1, pp.Item2, pp.Item3)).ToList();
                 f = pfad;
                 break;
             }

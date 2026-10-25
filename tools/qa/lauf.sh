@@ -9,11 +9,12 @@ set -u
 
 wurzel="$(cd "$(dirname "$0")/../../" && pwd)"     # skript liegt in tools/qa -> wurzel = /root/laserforge
 ssh_cmd="ssh -o BatchMode=yes -o ConnectTimeout=15 stand-pc"
+qa_proc="LaserForge.QA"
 fern_ps="powershell -NoProfile -ExecutionPolicy Bypass -File"
 fern_qa="C:\\Users\\Fabia\\LaserForge\\tools\\qa"
 fern_log="C:\\Users\\Fabia\\LaserForge\\qa"
 fern_cap="C:/Users/Fabia/.forge-qa"
-ziel_pngs="${1:-$wurzel/docs/qa/mein-gui}"
+ziel_pngs="${1:-$wurzel/docs/qa/mein-gui"
 
 echo "=== LASERFORGE M5-QA: AUTOMATIK-ZYKLUS ($(date '+%Y-%m-%d %H:%M:%S')) ==="
 
@@ -33,7 +34,7 @@ echo "OK: 3 Skripte auf fernem tools/qa (baute_test, gui_start, gui_capture)"
 
 # --- 2/6: bauen + testen ---
 echo "### 2/6 dotnet build + dotnet test am Stand-PC"
-if ! $ssh_cmd "$fern_ps $fern_qa\\baute_test.ps1"; then
+if ! $ssh_cmd "$fern_ps $fern_qa\\baute_test.ps1 -ProcName $qa_proc"; then
     echo "!!!! BAU/TEST GESCHEITERT - Log-Schwanz:"
     echo "--- build.log (letzte 30 Zeilen) ---"
     $ssh_cmd "type $fern_log\\build.log" 2>&1 | tail -n 30
@@ -45,7 +46,7 @@ fi
 
 # --- 3/6: GUI starten ---
 echo "### 3/6 LaserForge.Desktop starten (schtasks, Session 1)"
-if ! $ssh_cmd "$fern_ps $fern_qa\\gui_start.ps1"; then
+if ! $ssh_cmd "$fern_ps $fern_qa\\gui_start.ps1 -ProcName $qa_proc"; then
     echo "!!! GUI-START GESCHEITERT - Diagnose:"
     $ssh_cmd "tasklist /FI \"IMAGENAME eq LaserForge.Desktop.exe\" /FO CSV" 2>&1 | tail -n 5
     echo "=== ZYKLUS ABBRUCH (exit 3) ==="
@@ -58,7 +59,7 @@ sleep 12
 
 # --- 5/6: Capture per Task ---
 echo "### 5/6 Fenster-Capture per schtasks-Task"
-if ! $ssh_cmd "$fern_ps $fern_qa\\gui_capture.ps1"; then
+if ! $ssh_cmd "$fern_ps $fern_qa\\gui_capture.ps1 -ProcName $qa_proc"; then
     echo "!!! CAPTURE GESCHEITERT - Diagnose (Verzeichnis out):"
     $ssh_cmd "dir C:\\Users\\Fabia\\.forge-qa\\out" 2>&1 | tail -n 10
     echo "=== ZYKLUS ABBRUCH (exit 3) ==="

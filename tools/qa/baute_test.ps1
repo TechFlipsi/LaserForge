@@ -4,7 +4,8 @@
 # Exit-Codes: 0 = Build + Test gruen ; 1 = Build fehlgeschlagen ; 2 = Test fehlgeschlagen ; 3 = Arbeitsumgebung fehlt
 
 param(
-    [string]$ProjektPath = "C:\Users\Fabia\LaserForge"
+    [string]$ProjektPath = "C:\Users\Fabia\LaserForge",
+    [string]$ProcName = "LaserForge.QA"
 )
 
 $ErrorActionPreference = "Continue"
@@ -28,7 +29,7 @@ if (-not $dot) { Write-Output "FEHLER: dotnet.exe nicht gefunden"; exit 3 }
 Write-Output ("DOTNET: " + $dot)
 
 # Schritt 0: laufende GUI-Instanz beenden - sonst sperrt die EXE die Ausgabedatei (LNK1104)
-taskkill /F /IM LaserForge.Desktop.exe /T 2>$null | Out-Null
+taskkill /F /IM ($ProcName + ".exe") /T 2>$null | Out-Null
 Start-Sleep -Milliseconds 500
 
 Set-Location $ProjektPath

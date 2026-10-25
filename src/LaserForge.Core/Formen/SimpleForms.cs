@@ -70,12 +70,6 @@ public sealed class PolygonForm : Form
         return new List<Zug>{ new Zug(punkte, true) };
     }
 }
-public sealed class PfadForm : Form
-{
-    public List<Zug> Rohtuege { get; set; } = new();
-    public override string Rohtyp() => "Path";
-    protected override List<Zug> Rohezuege() => Rohtuege.Select(z => new Zug(z.Punkte.Select(XForm.Anwenden), z.Geschlossen)).ToList();
-}
 /// <summary>Text-Form: Umriss wird spaeter ueber Systemfont-Raster erzeugt (M3) — M1 liefert leere Zuege.</summary>
 public sealed class TextForm : Form
 {

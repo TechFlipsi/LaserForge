@@ -104,6 +104,25 @@ public static class SchreiberLbrn
                 sh.Add(new XAttribute("Str", tf.Text));
                 sh.Add(new XAttribute("H", Doppel(tf.Hoehe)));
                 break;
+            case PfadForm ff when ff.HatRoheVerte:
+            {
+                foreach (var v in ff.RoheVerte)
+                {
+                    var vex = new XElement("V",
+                        new XAttribute("vx", Doppel(v.Punkt.X)), new XAttribute("vy", Doppel(v.Punkt.Y)));
+                    if (v.C0 is { } c0)
+                    { vex.Add(new XAttribute("c0x", Doppel(c0.X))); vex.Add(new XAttribute("c0y", Doppel(c0.Y))); }
+                    if (v.C1 is { } c1)
+                    { vex.Add(new XAttribute("c1x", Doppel(c1.X))); vex.Add(new XAttribute("c1y", Doppel(c1.Y))); }
+                    if (v.Glatt) vex.Add(new XAttribute("S", "1"));
+                    sh.Add(vex);
+                }
+                foreach (var prim in ff.RohePrimse)
+                    sh.Add(new XElement("P",
+                        new XAttribute("T", prim.Typ),
+                        new XAttribute("p0", prim.P0), new XAttribute("p1", prim.P1)));
+                break;
+            }
             case PfadForm ff:
             {
                 int kursor = 0;

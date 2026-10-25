@@ -6,14 +6,14 @@
 # Exit: 0 = neue PNGs da ; 2 = kein PNG entstanden ; 3 = Capture-Skript fehlt ; 4 = schtasks-Fehler
 
 param(
-    [string]$ProcName = "LaserForge.Desktop",
+    [string]$ProcName = "LaserForge.QA",
     [string]$CaptureScript = "C:\Users\Fabia\.forge-qa\capture_windows.ps1",
     [string]$OutDir = "C:\Users\Fabia\.forge-qa\out",
     [int]$WarteSek = 40
 )
 
 $ErrorActionPreference = "Continue"
-$taskName = "forge_cap"
+$taskName = "forge_cap_" + $ProcName
 
 if (-not (Test-Path $CaptureScript)) { Write-Output ("CAPTURE_FEHLT: " + $CaptureScript); exit 3 }
 if (-not (Test-Path $OutDir)) { New-Item -ItemType Directory -Force -Path $OutDir | Out-Null }
