@@ -27,7 +27,51 @@ public sealed class ApiZustand
             30 => "#206040",
             _ => "#202020",
         };
+/// <summary>Paarungen verlustfrei persistieren (Neustart des Dienstes behält Zustände).</summary>
+    public void Speichern(string pfad)
+    {
+        try
+        {
+            System.IO.Directory.CreateDirectory(System.IO.Path.GetDirectoryName(pfad)!);
+            var liste = new System.Text.Json.Nodes.JsonArray();
+            foreach (var p in Paarungen.Values)
+                liste.Add(new System.Text.Json.Nodes.JsonObject
+                {
+                    ["application_name"] = p.Anwendungsname,
+                    ["capabilities"] = string.Join(",", p.Kapazitaeten),
+                    ["secret"] = p.Secret,
+                    ["gekoppelte_zeit"] = p.GekoppeltAm,
+                });
+            var o = new System.Text.Json.Nodes.JsonObject { ["paarungen"] = liste };
+            System.IO.File.WriteAllText(pfad, o.ToJsonString());
+        }
+        catch (Exception) { /* Zustandsspeicher ist optional — kein Abbruch des Dienstes */ }
+    }
+    public void Laden(string pfad)
+    {
+        try
+        {
+            if (!System.IO.File.Exists(pfad)) return;
+            var o = System.Text.Json.Nodes.JsonNode.Parse(System.IO.File.ReadAllText(pfad)) as System.Text.Json.Nodes.JsonObject;
+            if (o?["paarungen"] is not System.Text.Json.Nodes.JsonArray arr) return;
+            foreach (var e in arr)
+                if (e is System.Text.Json.Nodes.JsonObject jo)
+                {
+                    var secret = (string?)jo["secret"] ?? "";
+                    if (secret.Length == 0) continue;
+                    Paarungen[secret] = new Paarung
+                    {
+                        Anwendungsname = (string?)jo["application_name"] ?? "",
+                        Kapazitaeten = (((string?)jo["capabilities"]) ?? "").Split(',', StringSplitOptions.RemoveEmptyEntries).ToList(),
+                        Secret = secret,
+                        GekoppeltAm = jo["gekoppelte_zeit"] is System.Text.Json.Nodes.JsonValue v && v.TryGetValue(out double d) ? (long)d : 0,
+                    };
+                }
+        }
+        catch (Exception) { /* beschädigter Speicher = ignorieren */ }
+    }
 }
+
 
 /// <summary>
 /// Protokoll-Router (Paritaet auf die LightBurn-2.2-API-Semantik, eigene Umsetzung).
@@ -37,7 +81,7 @@ public sealed class ApiZustand
 public static class Router
 {
     public static (int Code, string Grund, string Koerper) Behandeln(
-        string methode, string pfad, string? bearer, bool loopback, ApiZustand zustand)
+        string methode, string pfad, string? bearer, bool loopback, ApiZustand zustand, string koerperText = "")
     {
         if (!pfad.StartsWith("/api/", StringComparison.Ordinal))
         {
@@ -76,9 +120,14 @@ public static class Router
         if (paarung is null)
             return (401, "Unauthorized", JsonObj(("error", "Unauthorized")).ToJsonString());
 
+        // Datei-Upload (Protokoll-Werkzeug: Projekt in den Dienst laden)
+        if (methode == "POST" && pfadQuergelesen == "/api/file/upload")
+            return DateiUpload(zustand, koerperText);
+
         return pfadQuergelesen switch
         {
             "/api/status" => Gruen(MaschineObj(zustand)),
+            "/api/overlay" => Gruen(OverlayObj(zustand)),
             "/api/position" => Gruen(JsonObj(
                 ("machine", PunktObj(0, 0, 0)),
                 ("workpiece", PunktObj(0, 0, 0)))),
@@ -186,4 +235,66 @@ public static class Router
         ("sources", 1),
         ("workspace", JsonObj(("x", z.Projekt.BreiteMM), ("y", z.Projekt.HoeheMM))),
         ("units", "mm"));
+    /// <summary>Projekt-Upload: JSON {filename, content} — Inhalt bei .lbrn/.lbrn2/.svg als Text parsen.</summary>
+    private static (int, string, string) DateiUpload(ApiZustand zustand, string koerperText)
+    {
+        try
+        {
+            var json = System.Text.Json.Nodes.JsonNode.Parse(koerperText) as JsonObject;
+            var dateiname = (string?)json?["filename"] ?? "upload.lbrn";
+            var inhalt = (string?)json?["content"] ?? "";
+            if (inhalt.Length == 0)
+                return (422, "Ungueltiger Inhalt", JsonObj(("error", "content fehlt.")).ToJsonString());
+            // Nur Projektformate in den Dienst-Zustand laden.
+            var k = dateiname.ToLowerInvariant();
+            Projekt geladen;
+            if (k.EndsWith(".svg"))
+                geladen = new Projekt { Formen = { LeserSvg.Lesen(inhalt, System.IO.Path.GetFileName(dateiname)) } };
+            else if (k.EndsWith(".lbrn") || k.EndsWith(".lbrn2"))
+                geladen = LeserLbrn.Lesen(inhalt);
+            else
+                return (415, "Nicht unterstuetzt", JsonObj(("error", "Nur .lbrn/.lbrn2/.svg werden geladen.")).ToJsonString());
+            zustand.Projekt = geladen;
+            var ordner = System.IO.Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "LaserForge", "uploads");
+            System.IO.Directory.CreateDirectory(ordner);
+            var sicher = System.IO.Path.GetFileName(dateiname);
+            var pfad = System.IO.Path.Combine(ordner, sicher);
+            System.IO.File.WriteAllText(pfad, inhalt);
+            return (200, "OK", JsonObj(("status", "ok"), ("saved", pfad), ("formen", geladen.FormenZahl())).ToJsonString());
+        }
+        catch (InvalidDataException idex)
+        {
+            return (422, "Ungueltiger Inhalt", JsonObj(("error", idex.Message)).ToJsonString());
+        }
+        catch (Exception ex)
+        {
+            return (500, "Fehler", JsonObj(("error", ex.Message)).ToJsonString());
+        }
+    }
+
+    /// <summary>Overlay: Canvas-Zusammenfassung je Form (Protokollniveau, deutschkommentiert).</summary>
+    private static JsonObject OverlayObj(ApiZustand z)
+    {
+        var arr = NeueListe();
+        foreach (var f in z.Projekt.Formen)
+        {
+            var zuege = f.ZuZuege();
+            double minX = double.MaxValue, minY = double.MaxValue, maxX = double.MinValue, maxY = double.MinValue;
+            foreach (var zg in zuege)
+                foreach (var p in zg.Punkte)
+                {
+                    if (p.X < minX) minX = p.X; if (p.X > maxX) maxX = p.X;
+                    if (p.Y < minY) minY = p.Y; if (p.Y > maxY) maxY = p.Y;
+                }
+            arr.Add(JsonObj(
+                ("rohtyp", f.Rohtyp()),
+                ("cut_index", f.SchnittIndex),
+                ("zug_count", zuege.Count),
+                ("bbox", JsonObj(
+                    ("x", minX > maxX ? 0 : minX), ("y", minY > maxY ? 0 : minY),
+                    ("w", minX > maxX ? 0 : maxX - minX), ("h", minY > maxY ? 0 : maxY - minY)))));
+        }
+        return JsonObj(("shapes", arr));
+    }
 }

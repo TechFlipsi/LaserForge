@@ -10,6 +10,9 @@ using LaserForge.Api.Rest;
 // ===========================================================================
 int port = args.Length > 0 && int.TryParse(args[0], out var p0) ? p0 : 19540;
 var zustand = new ApiZustand();
+var zustandDatei = System.IO.Path.Combine(
+    Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "LaserForge", "api-paarungen.json");
+zustand.Laden(zustandDatei);
 var listener = new TcpListener(IPAddress.Loopback, port);
 listener.Start();
 Console.WriteLine($"LaserForge-API lauscht auf http://127.0.0.1:{port}/ — Protokollparitaet bereit (Paarung nur Loopback).");
@@ -43,7 +46,11 @@ void Behandeln(TcpClient client)
             if (z.StartsWith("Authorization: Bearer ", StringComparison.OrdinalIgnoreCase))
                 bearer = z[21..].Trim();
         var loopback = client.Client.RemoteEndPoint is IPEndPoint ip && IPAddress.IsLoopback(ip.Address);
-        var (code, grund, koerper) = Router.Behandeln(methode, pfad, bearer, loopback, zustand);
+        var alles = sb.ToString();
+        var trennIx = alles.IndexOf("\r\n\r\n");
+        var koerperText = trennIx >= 0 ? alles[(trennIx + 4)..] : "";
+        var (code, grund, koerper) = Router.Behandeln(methode, pfad, bearer, loopback, zustand, koerperText);
+        if (methode == "POST") zustand.Speichern(zustandDatei);
         var body = Encoding.UTF8.GetBytes(koerper);
         var kopf = Encoding.UTF8.GetBytes(
             $"HTTP/1.1 {code} {grund}\r\n" +

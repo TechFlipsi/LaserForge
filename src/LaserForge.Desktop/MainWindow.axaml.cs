@@ -1,64 +1,102 @@
 using System;
+using System.Collections.Generic;
+using System.Globalization;
+using System.IO;
+using System.Linq;
+using System.Runtime.InteropServices;
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Media;
+using Avalonia.Media.Imaging;
+using LaserForge.Core.Einstellungen;
+using LaserForge.Core.Formate;
+using LaserForge.Core.Formen;
+using LaserForge.Core.Geometrie;
+using LaserForge.Core.Pipeline;
 using LaserForge.Desktop.Controls;
 
 namespace LaserForge.Desktop;
 
 /// <summary>
-/// M5-a: Hauptfenster-Aufbau nach docs/design-ziel-bild.md — dunkles Chrom,
-/// helle Arbeitsfläche, Rechts-Panel mit Konsole/6 Tabs/Laser-Panel,
-/// Layer-Leiste 00..30 + T1/T2 und Statusleiste. Logik folgt in M5-b.
+/// Hauptfenster M5-a/M5-b: Aufbau nach docs/design-ziel-bild.md.
+/// M5-b-Welle: Ebenen-Tab mit echter Live-Liste aus dem Core-Projekt,
+/// Canvas-Werkzeuge (Zeichnen/Auswahl/Verschieben) mit Undo/Redo,
+/// Datei-IO über SchreiberLbrn/LeserLbrn, Preview-Tab mit dem echten
+/// Core-PreviewSimulator, gesperrte Konsole ohne Verbindung und live Maus-mm.
 /// </summary>
 public partial class MainWindow : Window
 {
-    /// <summary>Tab-Namen in Bibel-Reihenfolge (eigene Bezeichner).</summary>
+    /// <summary>Tab-Namen in Bibel-Reihenfolge + Vorschau-Zusatz (M5-b).</summary>
     private static readonly string[] TabNamen =
     {
-        "Schnitte/Ebenen",
-        "Bewegen",
-        "Konsole",
-        "Makros",
-        "Kamera/Overlays",
-        "Seiten",
+        "Schnitte/Ebenen", "Bewegen", "Konsole", "Makros", "Kamera/Overlays", "Seiten", "Vorschau",
     };
 
-    /// <summary>Layer-Palette aus docs/design-ziel-bild.md (eigene Festlegung, 31 Chips + T1/T2).</summary>
-    private static readonly (string Nummer, string Hex)[] LayerPalette =
-    {
-        ("00", "#000000"), ("01", "#FF0000"), ("02", "#00C000"), ("03", "#0060FF"),
-        ("04", "#FF80FF"), ("05", "#FF8000"), ("06", "#00C0FF"), ("07", "#FFFF00"),
-        ("08", "#800060"), ("09", "#802000"), ("10", "#404040"), ("11", "#FFC000"),
-        ("12", "#6080FF"), ("13", "#C0C0C0"), ("14", "#FF0080"), ("15", "#008060"),
-        ("16", "#806000"), ("17", "#006080"), ("18", "#FF6020"), ("19", "#808080"),
-        ("20", "#C00000"), ("21", "#0080FF"), ("22", "#8000FF"), ("23", "#00A0A0"),
-        ("24", "#A06000"), ("25", "#006000"), ("26", "#800000"), ("27", "#0040A0"),
-        ("28", "#A000A0"), ("29", "#404080"), ("30", "#206040"), ("T1", "#202020"), ("T2", "#606060"),
-    };
+    /// <summary>Modus-Werte des Ebenen-Tabs (Auftrag A).</summary>
+    private static readonly string[] ModusWerte = { "Cut", "Scan", "Fill", "Score" };
 
-    /// <summary>6 eigengebaute Tab-Knöpfe (eine Zeile, kein Zeilenumbruch).</summary>
-    private Button[] TabKnopfe = null!;
+    private readonly Dokument dokument = new();
 
-    /// <summary>Aktiver Tab (Bibelvorgabe: Konsole = 2).</summary>
+    /// <summary>6 Bibel-Tabs + Vorschau-Knopf.</summary>
+    private Button[] tabKnopfe = null!;
+
     private int aktiverTab = 2;
+
+    /// <summary>Layer-Nummer für neue Formen (Klick in der Layer-Leiste).</summary>
+    private int aktiverLayer = 0;
+
+    /// <summary>Aktueller Zusatz-Drehwinkel der Auswahl (Eigenschaften-Leiste).</summary>
+    private double drehWinkel;
 
     public MainWindow()
     {
         InitializeComponent();
-        TabKnopfe = new[] { TabKnopf0, TabKnopf1, TabKnopf2, TabKnopf3, TabKnopf4, TabKnopf5 };
+        tabKnopfe = new[] { TabKnopf0, TabKnopf1, TabKnopf2, TabKnopf3, TabKnopf4, TabKnopf5, TabKnopf6 };
+        dokument.ZustandGeaendert += OnDokZustand;
+
+        Flaeche.Dok = dokument;
+        Flaeche.Quelle = dokument.Projekt;
+        Flaeche.MausMM += OnMausMM;
+        Flaeche.Zustand += OnFlaecheZustand;
+
         BaueLayerleiste();
+        BaueEbenenListe();
+        KonsoleAnfang();
+
+        aktiverTab = Math.Clamp(StartEinstellung.Tab, 0, TabNamen.Length - 1);
+        if (StartEinstellung.Maximieren)
+        {
+            WindowState = WindowState.Maximized;
+        }
         AktualisiereTabs();
+
+        // QA-/Komfort-Startdatei (echter LeserLbrn-Pfad).
+        if (StartEinstellung.Datei.Length > 0)
+        {
+            LadeProjektdatei(StartEinstellung.Datei);
+        }
+        if (StartEinstellung.AuswahlAlle)
+        {
+            Flaeche.AlleAuswaehlen();
+        }
+        TitelAnzeigen();
+        PropLeisteBeleben();
     }
 
-    /// <summary>Baut die untere Layer-Leiste: Farbchips 00..30 + T1/T2 mit Kontrast-Schrift.</summary>
+    // ================================================== Layer-Leiste
+
+    /// <summary>Baut die untere Layer-Leiste: Farbchips 00..30 + T1/T2, Klick = aktiven Layer wählen.</summary>
     private void BaueLayerleiste()
     {
-        foreach (var (nummer, hex) in LayerPalette)
+        Layerleiste.Children!.Clear();
+        for (int i = 0; i < LayerFarben.Palette.Length; i++)
         {
+            var (nummer, hex) = LayerFarben.Palette[i];
             var farbe = Color.Parse(hex);
-            Layerleiste.Children!.Add(new Border
+            int chipIndex = i > 30 ? i : i;   // T1/T2 = 31/32 (Werkzeug-Layer)
+            var chip = new Border
             {
                 Width = 30,
                 Height = 22,
@@ -67,26 +105,50 @@ public partial class MainWindow : Window
                 Background = new SolidColorBrush(farbe),
                 BorderBrush = new SolidColorBrush(Color.Parse("#5A5A5A")),
                 BorderThickness = new Thickness(1),
+                Tag = chipIndex,
                 Child = new TextBlock
                 {
                     Text = nummer,
                     FontSize = 10,
-                    Foreground = new SolidColorBrush(ChipTextfarbe(farbe)),
+                    Foreground = new SolidColorBrush(LayerFarben.Textfarbe(farbe)),
                     HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center,
                     VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center,
                 },
-            });
+            };
+            chip.Tapped += OnLayerChip;
+            Layerleiste.Children.Add(chip);
+            MaLayerChipMarkieren(i);
         }
     }
 
-    /// <summary>Schriftfarbe je Chip: schwarz auf heller, weiß auf dunkler Grundfarbe.</summary>
-    private static Color ChipTextfarbe(Color c)
+    /// <summary>Layer-Chip-Klick → aktive Layer-Nummer für neue Formen.</summary>
+    private void OnLayerChip(object? sender, RoutedEventArgs e)
     {
-        double helligkeit = (0.299 * c.R + 0.587 * c.G + 0.114 * c.B) / 255.0;
-        return helligkeit > 0.55 ? Colors.Black : Colors.White;
+        if (sender is Border chip && chip.Tag is int index)
+        {
+            aktiverLayer = index;
+            Flaeche.AktiverLayer = index;
+            MaLayerChipMarkieren();
+        }
     }
 
-    /// <summary>Klick auf einen der 6 Tab-Knöpfe → Inhalt wechseln.</summary>
+    /// <summary>Aktiv-Markierung (orange Rand) über alle Layer-Chips.</summary>
+    private void MaLayerChipMarkieren(int _fuerAlt = -1)
+    {
+        for (int i = 0; i < Layerleiste.Children!.Count; i++)
+        {
+            if (Layerleiste.Children[i] is Border chip)
+            {
+                bool aktiv = i == aktiverLayer || (aktiverLayer == i && i > 30);
+                chip.BorderThickness = new Thickness(aktiv ? 2 : 1);
+                chip.BorderBrush = new SolidColorBrush(aktiv ? Color.Parse("#FF9900") : Color.Parse("#5A5A5A"));
+            }
+        }
+    }
+
+    // ================================================== Tabs
+
+    /// <summary>Klick auf einen der 7 Tab-Knöpfe → Inhalt wechseln.</summary>
     private void OnTabKnopf(object? sender, RoutedEventArgs e)
     {
         if (sender is Button knopf && knopf.Parent is StackPanel leiste)
@@ -96,10 +158,10 @@ public partial class MainWindow : Window
         }
     }
 
-    /// <summary>Sichtbarkeiten + Knopfmarkierung je aktiver Tab (Null-robust beim Init).</summary>
+    /// <summary>Sichtbarkeiten + Knopfmarkierung je aktiver Tab; Vorschau bei Betritt frisch.</summary>
     private void AktualisiereTabs()
     {
-        if (TabKnopfe is null)
+        if (tabKnopfe is null)
         {
             return;
         }
@@ -108,42 +170,527 @@ public partial class MainWindow : Window
         {
             TabTitel.Text = TabNamen[aktiverTab];
         }
-        if (TabEbenen is not null)
+        if (TabEbenen is not null) TabEbenen.IsVisible = aktiverTab == 0;
+        if (TabBewegen is not null) TabBewegen.IsVisible = aktiverTab == 1;
+        if (TabKonsole is not null) TabKonsole.IsVisible = aktiverTab == 2;
+        if (TabMakros is not null) TabMakros.IsVisible = aktiverTab == 3;
+        if (TabKamera is not null) TabKamera.IsVisible = aktiverTab == 4;
+        if (TabSeiten is not null) TabSeiten.IsVisible = aktiverTab == 5;
+        if (TabVorschau is not null) TabVorschau.IsVisible = aktiverTab == 6;
+        for (int i = 0; i < tabKnopfe.Length; i++)
         {
-            TabEbenen.IsVisible = aktiverTab == 0;
-        }
-        if (TabBewegen is not null)
-        {
-            TabBewegen.IsVisible = aktiverTab == 1;
-        }
-        if (TabKonsole is not null)
-        {
-            TabKonsole.IsVisible = aktiverTab == 2;
-        }
-        if (TabMakros is not null)
-        {
-            TabMakros.IsVisible = aktiverTab == 3;
-        }
-        if (TabKamera is not null)
-        {
-            TabKamera.IsVisible = aktiverTab == 4;
-        }
-        if (TabSeiten is not null)
-        {
-            TabSeiten.IsVisible = aktiverTab == 5;
-        }
-        for (int i = 0; i < TabKnopfe.Length; i++)
-        {
-            var knopf = TabKnopfe[i];
-            if (knopf is null)
-            {
-                continue;
-            }
+            var knopf = tabKnopfe[i];
+            if (knopf is null) continue;
             knopf.Classes.Remove("aktiv");
             if (i == aktiverTab)
             {
                 knopf.Classes.Add("aktiv");
             }
         }
+        if (aktiverTab == 6)
+        {
+            VorschauNeu();
+        }
     }
+
+    // ================================================== Werkzeuge
+
+    private void OnWerkzeugAuswahl(object? s, RoutedEventArgs e) => SetzeWerkzeug("Auswahl");
+    private void OnWerkzeugRechteck(object? s, RoutedEventArgs e) => SetzeWerkzeug("Rechteck");
+    private void OnWerkzeugEllipse(object? s, RoutedEventArgs e) => SetzeWerkzeug("Ellipse");
+    private void OnWerkzeugLinie(object? s, RoutedEventArgs e) => SetzeWerkzeug("Linie");
+
+    /// <summary>Aktiv-Werkzeug markieren (4 zeichenfähige, Rest bleibt Platzhalter).</summary>
+    private void SetzeWerkzeug(string werkzeug)
+    {
+        Flaeche.AktivesWerkzeug = werkzeug;
+        foreach (var b in new[] { WzAuswahl, WzRechteck, WzEllipse, WzLinie })
+        {
+            b.Classes.Remove("aktiv");
+        }
+        var aktiv = werkzeug switch
+        {
+            "Rechteck" => WzRechteck,
+            "Ellipse" => WzEllipse,
+            "Linie" => WzLinie,
+            _ => WzAuswahl,
+        };
+        aktiv.Classes.Add("aktiv");
+        StatusWerkzeug.Text = "Werkzeug: " + werkzeug;
+    }
+
+    // ================================================== Tasten
+
+    /// <summary>Werkzeug- und Befehls-Hotkeys (Bibel-F2/F3/F5 + Strg-Befehle).</summary>
+    protected override void OnKeyDown(KeyEventArgs e)
+    {
+        if (e.Source is TextBox)
+        {
+            base.OnKeyDown(e);
+            return;
+        }
+        switch (e.Key)
+        {
+            case Key.F2: SetzeWerkzeug("Rechteck"); break;
+            case Key.F3: SetzeWerkzeug("Ellipse"); break;
+            case Key.F5: SetzeWerkzeug("Linie"); break;
+            case Key.Delete: Flaeche.AuswahlLoeschen(); break;
+            case Key.N when e.KeyModifiers.HasFlag(KeyModifiers.Control): NeuProjekt(); break;
+            case Key.O when e.KeyModifiers.HasFlag(KeyModifiers.Control): OeffnenDialog(); break;
+            case Key.S when e.KeyModifiers.HasFlag(KeyModifiers.Control): SpeichernDialog(); break;
+            case Key.Z when e.KeyModifiers.HasFlag(KeyModifiers.Control): Undo(); break;
+            case Key.Y when e.KeyModifiers.HasFlag(KeyModifiers.Control): Redo(); break;
+            case Key.A when e.KeyModifiers.HasFlag(KeyModifiers.Control): Flaeche.AlleAuswaehlen(); break;
+            default:
+                base.OnKeyDown(e);
+                return;
+        }
+        e.Handled = true;
+    }
+
+    // ================================================== Undo/Redo/Löschen
+
+    private void OnUndo(object? s, RoutedEventArgs e) => Undo();
+    private void OnRedo(object? s, RoutedEventArgs e) => Redo();
+    private void OnAuswahlLoeschen(object? s, RoutedEventArgs e) => Flaeche.AuswahlLoeschen();
+
+    private void Undo()
+    {
+        if (dokument.HatUndo)
+        {
+            dokument.Undo();
+            StatusMeldung.Text = "Rückgängig";
+        }
+    }
+
+    private void Redo()
+    {
+        if (dokument.HatRedo)
+        {
+            dokument.Redo();
+            StatusMeldung.Text = "Wiederholt";
+        }
+    }
+
+    // ================================================== Dokument-Bindung
+
+    /// <summary>Dokument-Zustand → alle Leisten/Tab-Inhalte frisch.</summary>
+    private void OnDokZustand()
+    {
+        Flaeche.Quelle = dokument.Projekt;
+        TitelAnzeigen();
+        BaueEbenenListe();
+        Flaeche.InvalidateVisual();
+        if (aktiverTab == 6)
+        {
+            VorschauNeu();
+        }
+        Flaeche.AuswahlLeeren();      // Nach Neu/Laden/Undo sind alte Formen-Objekte weg
+        Flaeche.InvalidateVisual();
+        MenuUndo.IsEnabled = dokument.HatUndo;
+        MenuRedo.IsEnabled = dokument.HatRedo;
+        PropLeisteBeleben();
+    }
+
+    /// <summary>Canvas-Zustand (Auswahl/Geometrie) → Status + Eigenschaften-Leiste.</summary>
+    private void OnFlaecheZustand()
+    {
+        PropLeisteBeleben();
+        dokument.Melden();   // Ebenen-Liste/Preview nachziehen (kein Rebuild-Zirkel: nur Sicht-Updates)
+        MenuLoeschen.IsEnabled = Flaeche.Ausgewaehlt.Count > 0;
+    }
+
+    /// <summary>Fenster-Titel aus dem Dokument (&lt;Dateiname&gt; - GRBL - LaserForge).</summary>
+    private void TitelAnzeigen()
+    {
+        var t = dokument.Titel;
+        if (Title != t) Title = t;
+    }
+
+    // ================================================== Statusleiste
+
+    private void OnMausMM(double x, double y)
+    {
+        StatusMaus.Text = string.Format(Dokument.Deutsch, "X {0:0.000} mm · Y {1:0.000} mm", x, y);
+    }
+
+    // ================================================== Datei-IO (C)
+
+    private void OnNeu(object? s, RoutedEventArgs e) => NeuProjekt();
+    private void OnOeffnen(object? s, RoutedEventArgs e) => OeffnenDialog();
+    private void OnSpeichern(object? s, RoutedEventArgs e) => SpeichernDialog();
+    private void OnBeenden(object? s, RoutedEventArgs e) => Close();
+
+    /// <summary>Neues leeres Projekt (Layer 00/01 wie die Bibel).</summary>
+    private void NeuProjekt()
+    {
+        dokument.Setze(Dokument.NeueLeere(), "");
+        KonsoleHin("Neues Projekt angelegt.", Brushes.Silver);
+        dokument.Melden();
+    }
+
+    /// <summary>Öffnen-Dialog → LeserLbrn.Lesen → Formen auf Canvas + Schnitte im Tab.</summary>
+    private async void OeffnenDialog()
+    {
+        var dateien = await StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
+        {
+            Title = "Projekt öffnen (.lbrn / .lbrn2)",
+            AllowMultiple = false,
+            FileTypeFilter = new[]
+            {
+                new FilePickerFileType("LightBurn-Projekt (*.lbrn, *.lbrn2)")
+                {
+                    Patterns = new[] { "*.lbrn", "*.lbrn2" },
+                },
+            },
+        });
+        if (dateien.Count == 0)
+        {
+            return;
+        }
+        LadeProjektdatei(dateien[0].Path.LocalPath);
+    }
+
+    /// <summary>Datei lesen (Core-Leser) und das Fenster daran hängen.</summary>
+    private void LadeProjektdatei(string pfad)
+    {
+        try
+        {
+            var projekt = LeserLbrn.Lesen(File.ReadAllText(pfad));
+            dokument.Setze(projekt, pfad);       // feuert OnDokZustand (Titel, Liste, Canvas)
+            dokument.FehlendeLayerAnlegen();
+            dokument.Melden();
+            KonsoleHin("Projekt geladen: " + pfad, Brushes.LightGreen);
+            StatusMeldung.Text = "Geladen";
+        }
+        catch (Exception fehler)
+        {
+            KonsoleHin("Fehler beim Öffnen: " + fehler.Message, Brushes.Salmon);
+            StatusMeldung.Text = "Öffnen fehlgeschlagen";
+        }
+        dokument.Melden();
+    }
+
+    /// <summary>Speichern über den Core-Schreiber; ohne Pfad → Speichern-Dialog (.lbrn).</summary>
+    private async void SpeichernDialog()
+    {
+        try
+        {
+            string text = SchreiberLbrn.Schreiben(dokument.Projekt);
+            if (dokument.Dateipfad.Length == 0)
+            {
+                var ziel = await StorageProvider.SaveFilePickerAsync(new FilePickerSaveFileOptions
+                {
+                    Title = "Projekt speichern",
+                    SuggestedFileName = "unbenannt",
+                    DefaultExtension = "lbrn",
+                    FileTypeChoices = new[]
+                    {
+                        new FilePickerFileType("LightBurn-Projekt (*.lbrn)")
+                        {
+                            Patterns = new[] { "*.lbrn" },
+                        },
+                    },
+                });
+                if (ziel is null)
+                {
+                    return;
+                }
+                var strom = await ziel.OpenWriteAsync();
+                using (var schreiber = new StreamWriter(strom))
+                {
+                    await schreiber.WriteAsync(text);
+                }
+                dokument.Dateipfad = ziel.Path.LocalPath;
+            }
+            else
+            {
+                File.WriteAllText(dokument.Dateipfad, text);
+            }
+            TitelAnzeigen();
+            KonsoleHin("Gespeichert: " + dokument.Dateipfad, Brushes.LightGreen);
+            StatusMeldung.Text = "Gespeichert";
+        }
+        catch (Exception fehler)
+        {
+            KonsoleHin("Fehler beim Speichern: " + fehler.Message, Brushes.Salmon);
+            StatusMeldung.Text = "Speichern fehlgeschlagen";
+        }
+    }
+
+    // ================================================== Ebenen-Tab (A)
+
+    /// <summary>Ebenen-Liste aus den Core-Schnitten bauen (Farbchip/Nummer/Modus/Power/Tempo/Aus/Sichtbar).</summary>
+    private void BaueEbenenListe()
+    {
+        EbenenListe.Children!.Clear();
+        foreach (var s in dokument.Projekt.GeordneteSchnitte())
+        {
+            EbenenListe.Children.Add(EbenenReihe(s));
+        }
+    }
+
+    /// <summary>Eine Live-Zeile: Bearbeitungen schreiben direkt in die Core-Schnitt-Einstellung.</summary>
+    private Control EbenenReihe(SchnittEinstellung s)
+    {
+        var farbe = LayerFarben.VonIndex(s.Index);
+        var chip = new Border
+        {
+            Width = 16, Height = 16, CornerRadius = new CornerRadius(2),
+            Background = new SolidColorBrush(farbe),
+            BorderBrush = new SolidColorBrush(Color.Parse("#5A5A5A")),
+            BorderThickness = new Thickness(1),
+            VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center,
+            Child = new TextBlock
+            {
+                Text = (s.Index <= 30 ? LayerFarben.Palette[Math.Clamp(s.Index, 0, 30)].Nummer : s.Index.ToString()),
+                FontSize = 7,
+                Foreground = new SolidColorBrush(LayerFarben.Textfarbe(farbe)),
+                HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center,
+                VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center,
+            },
+        };
+
+        var name = new TextBlock
+        {
+            Text = s.NameSektion.Length > 0 ? s.NameSektion : $"Layer {s.Index:00}",
+            FontSize = 10, Foreground = Brushes.Gainsboro, VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center,
+        };
+
+        var modus = new ComboBox
+        {
+            Width = 68, Height = 22, FontSize = 10,
+            ItemsSource = ModusWerte,
+            SelectedItem = Array.IndexOf(ModusWerte, s.Typ) >= 0 ? s.Typ : "Cut",
+            VerticalContentAlignment = Avalonia.Layout.VerticalAlignment.Center,
+        };
+        modus.SelectionChanged += (_, _) =>
+        {
+            if (modus.SelectedItem is string m)
+            {
+                s.Typ = m;   // live ins Core-Projekt
+                EbenenLive();
+            }
+        };
+
+        var power = new NumericUpDown
+        {
+            Width = 52, Height = 22, FontSize = 10,
+            Minimum = 0m, Maximum = 100m, Increment = 1m,
+            Value = (decimal)Math.Clamp(s.MaxPower, 0, 100),
+        };
+        power.ValueChanged += (_, _) =>
+        {
+            if (power.Value is { } v)
+            {
+                double w = (double)v;
+                s.MinPower = w;
+                s.MaxPower = w;   // live ins Core-Projekt
+                EbenenLive();
+            }
+        };
+
+        var tempo = new NumericUpDown
+        {
+            Width = 52, Height = 22, FontSize = 10,
+            Minimum = 0.1m, Maximum = 1000m, Increment = 1m,
+            Value = (decimal)Math.Clamp(Math.Max(0.1, s.Speed), 0.1, 1000),
+        };
+        tempo.ValueChanged += (_, _) =>
+        {
+            if (tempo.Value is { } v)
+            {
+                s.Speed = (double)v;   // live ins Core-Projekt
+                EbenenLive();
+            }
+        };
+
+        var ausS = new ToggleSwitch
+        {
+            MinWidth = 34, FontSize = 9, Padding = new Thickness(0),
+            IsChecked = s.Aktiviert,
+        };
+        ausS.IsCheckedChanged += (_, _) =>
+        {
+            s.Aktiviert = ausS.IsChecked == true;   // live ins Core-Projekt
+            EbenenLive();
+        };
+
+        var sichtbarS = new ToggleSwitch
+        {
+            MinWidth = 34, FontSize = 9, Padding = new Thickness(0),
+            IsChecked = !s.Versteckt,
+        };
+        sichtbarS.IsCheckedChanged += (_, _) =>
+        {
+            bool sicht = sichtbarS.IsChecked != false;
+            Flaeche.LayerSichtbar(s.Index, sicht);
+        };
+
+        var gitter = new Grid
+        {
+            ColumnDefinitions = new ColumnDefinitions("16,64,72,54,54,36,44"),
+        };
+        gitter.Children.Add(chip);          Grid.SetColumn(chip, 0);
+        gitter.Children.Add(name);          Grid.SetColumn(name, 1);
+        gitter.Children.Add(modus);         Grid.SetColumn(modus, 2);
+        gitter.Children.Add(power);         Grid.SetColumn(power, 3);
+        gitter.Children.Add(tempo);         Grid.SetColumn(tempo, 4);
+        gitter.Children.Add(ausS);          Grid.SetColumn(ausS, 5);
+        gitter.Children.Add(sichtbarS);     Grid.SetColumn(sichtbarS, 6);
+
+        return new Border
+        {
+            Background = new SolidColorBrush(Color.Parse("#262626")),
+            CornerRadius = new CornerRadius(2),
+            Padding = new Thickness(3, 2),
+            Child = gitter,
+        };
+    }
+
+    private void EbenenLive()
+    {
+        Flaeche.InvalidateVisual();
+        if (aktiverTab == 6)
+        {
+            VorschauNeu();
+        }
+    }
+
+    // ================================================== Vorschau (D)
+
+    /// <summary>Echten Core-Simulator nutzen und Ergebnis als Bild + Zeit zeigen.</summary>
+    private void VorschauNeu()
+    {
+        try
+        {
+            var erg = PreviewSimulator.Simuliere(dokument.Projekt);
+            VorschauZeit.Text = string.Format(
+                Dokument.Deutsch,
+                "Zeit: {0:0.0} s Brennen · {1:0.0} s Fahrten · {2:0.0} s gesamt · {3} Formen",
+                erg.Sekunden, erg.FahrtenSekunden, erg.Sekunden + erg.FahrtenSekunden,
+                dokument.Projekt.FormenZahl());
+            VorschauBild.Source = PreviewBitmap(erg);
+        }
+        catch (Exception fehler)
+        {
+            VorschauZeit.Text = "Simulationsfehler: " + fehler.Message;
+        }
+    }
+
+    private void OnVorschauAktualisieren(object? s, RoutedEventArgs e) => VorschauNeu();
+
+    /// <summary>Grau-Matrix in ein BGRA-WriteableBitmap (weiß = unbrannt, dunkel = gebrannt).</summary>
+    private static WriteableBitmap PreviewBitmap(PreviewErg erg)
+    {
+        var bitmap = new WriteableBitmap(new PixelSize(erg.BreitePix, erg.HoehePix), new Vector(96, 96), PixelFormats.Bgra8888);
+        using (var rahmen = bitmap.Lock())
+        {
+            var zeile = new byte[erg.BreitePix * 4];
+            for (int y = 0; y < erg.HoehePix; y++)
+            {
+                for (int x = 0; x < erg.BreitePix; x++)
+                {
+                    byte g = erg.Grau[y * erg.BreitePix + x];
+                    zeile[x * 4 + 0] = g;   // B
+                    zeile[x * 4 + 1] = g;   // G
+                    zeile[x * 4 + 2] = g;   // R
+                    zeile[x * 4 + 3] = 255; // A
+                }
+                Marshal.Copy(zeile, 0, rahmen.Address + (long)y * rahmen.RowBytes, zeile.Length);
+            }
+        }
+        return bitmap;
+    }
+
+    // ================================================== Konsole (E)
+
+    /// <summary>Konsole: Startzustand (Warte auf Verbindung) + gesperrte Eingabe.</summary>
+    private void KonsoleAnfang()
+    {
+        KonsoleHin("Auf Verbindung warten …", Brushes.IndianRed);
+        KonsoleHinhalt.Text = "Keine Verbindung — Gerät verbinden";
+        KonsoleEingabe.IsEnabled = false;
+        KonsoleSenden.IsEnabled = false;
+    }
+
+    /// <summary>Eine Log-Zeile in die Konsole schreiben (Farbe frei wählbar).</summary>
+    private void KonsoleHin(string text, IBrush farbe)
+    {
+        KonsoleLog.Children.Add(new TextBlock
+        {
+            Text = text,
+            FontSize = 11,
+            Foreground = farbe,
+            Margin = new Thickness(0, 1, 0, 0),
+            TextWrapping = TextWrapping.Wrap,
+        });
+        while (KonsoleLog.Children.Count > 200)
+        {
+            KonsoleLog.Children.RemoveAt(0);
+        }
+        if (KonsoleLog.Parent is ScrollViewer sv)
+        {
+            sv.ScrollToEnd();
+        }
+    }
+
+    /// <summary>M5-c-Anknopf: Verbindungszustand öffnet/schließt die Konsole-Eingabe (heute: immer zu).</summary>
+    public void VerbindungZustand(bool verbunden, string gerät)
+    {
+        KonsoleEingabe.IsEnabled = verbunden;
+        KonsoleSenden.IsEnabled = verbunden;
+        KonsoleHinhalt.Text = verbunden ? "Verbunden mit " + gerät : "Keine Verbindung — Gerät verbinden";
+        if (verbunden)
+        {
+            KonsoleHin("--- Verbunden mit " + gerät + " ---", Brushes.LightGreen);
+        }
+    }
+
+    // ================================================== Eigenschaften-Leiste (B)
+
+    /// <summary>Felder X/Y/B/H/Dreh der aktuellen Auswahl füllen (deutsch, Komma).</summary>
+    private void PropLeisteBeleben()
+    {
+        if (Flaeche.Ausgewaehlt.Count == 0)
+        {
+            FeldXPos.Text = ""; FeldYPos.Text = ""; FeldBreite.Text = ""; FeldHoehe.Text = "";
+            FeldDrehen.Text = "0,00";
+            return;
+        }
+        var box = AuswahlUnion(0.0);
+        FeldXPos.Text = string.Format(Dokument.Deutsch, "{0:0.000}", box.minX);
+        FeldYPos.Text = string.Format(Dokument.Deutsch, "{0:0.000}", box.minY);
+        FeldBreite.Text = string.Format(Dokument.Deutsch, "{0:0.000}", box.maxX - box.minX);
+        FeldHoehe.Text = string.Format(Dokument.Deutsch, "{0:0.000}", box.maxY - box.minY);
+        FeldDrehen.Text = string.Format(Dokument.Deutsch, "{0:0.00}", drehWinkel);
+    }
+
+    /// <summary>Zahl deutscher/engeliger Komma-/Punktform lesen.</summary>
+    private static double Zahle(string text)
+    {
+        return double.TryParse(text.Trim().Replace(',', '.'), NumberStyles.Any,
+            CultureInfo.InvariantCulture, out var wert) ? wert : double.NaN;
+    }
+
+    /// <summary>(minX, minY, maxX, maxY) der Auswahl ohne Toleranz.</summary>
+    private (double minX, double minY, double maxX, double maxY) AuswahlUnion(double toleranz)
+    {
+        double minX = double.MaxValue, minY = double.MaxValue, maxX = double.MinValue, maxY = double.MinValue;
+        if (Flaeche.Ausgewaehlt.Count == 0)
+        {
+            return (0, 0, 0, 0);
+        }
+        foreach (var f in Flaeche.Ausgewaehlt)
+        {
+            var box = LayerFarben.BoxMM(f, toleranz);
+            minX = Math.Min(minX, box[0]);
+            minY = Math.Min(minY, box[1]);
+            maxX = Math.Max(maxX, box[2]);
+            maxY = Math.Max(maxY, box[3]);
+        }
+        return (minX, minY, maxX, maxY);
+    }
+
+    private void OnMausMMLeer(double x, double y) { }   // Rückseite für Designer — nicht genutzt
 }

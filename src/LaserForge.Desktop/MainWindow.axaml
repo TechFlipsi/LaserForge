@@ -7,8 +7,9 @@
         Width="1600" Height="900" MinWidth="1150" MinHeight="680"
         Background="#222222">
 
-  <!-- M5-a: Aufbau nach docs/design-ziel-bild.md (Farb-/Regions-Tabelle der Bibel).
-       Eigene Icons, eigener deutscher Wortlaut, keine Fremd-Assets. Statischer Aufbaustand. -->
+  <!-- M5-a/M5-b: Aufbau nach docs/design-ziel-bild.md (Farb-/Regions-Tabelle der Bibel).
+       Eigene Icons, eigener deutscher Wortlaut, keine Fremd-Assets.
+       M5-b: Ebenen-Liste, Canvas-Werkzeuge, Datei-IO, Preview-Tab, Konsole-Sperre, Maus-mm. -->
 
   <Window.Styles>
     <Style Selector="Button.leiste">
@@ -66,6 +67,10 @@
       <Setter Property="Background" Value="#4A4A4A"/>
       <Setter Property="Foreground" Value="#FFFFFF"/>
     </Style>
+    <Style Selector="ToggleSwitch.knipf">
+      <Setter Property="MinWidth" Value="30"/>
+      <Setter Property="FontSize" Value="9"/>
+    </Style>
   </Window.Styles>
 
   <DockPanel LastChildFill="True">
@@ -73,10 +78,10 @@
     <!-- ============ Statusleiste (unten, 5 Segmente) ============ -->
     <Border DockPanel.Dock="Bottom" Background="#1E1E1E" Height="26" BorderBrush="#141414" BorderThickness="0,1,0,0">
       <Grid Margin="10,0" ColumnDefinitions="2*,1*,1.2*,1*,0.6*">
-        <TextBlock Grid.Column="0" Text="X 0,000 mm · Y 0,000 mm" FontSize="11" Foreground="#C8C8C8" VerticalAlignment="Center"/>
-        <TextBlock Grid.Column="1" Text="Bereit" FontSize="11" Foreground="#C8C8C8" VerticalAlignment="Center"/>
-        <TextBlock Grid.Column="2" Text="Auswahl: 0 Objekte" FontSize="11" Foreground="#C8C8C8" VerticalAlignment="Center"/>
-        <TextBlock Grid.Column="3" Text="Fertig" FontSize="11" Foreground="#C8C8C8" VerticalAlignment="Center"/>
+        <TextBlock x:Name="StatusMaus" Grid.Column="0" Text="X 0,000 mm · Y 0,000 mm" FontSize="11" Foreground="#C8C8C8" VerticalAlignment="Center"/>
+        <TextBlock x:Name="StatusWerkzeug" Grid.Column="1" Text="Werkzeug: Auswahl" FontSize="11" Foreground="#C8C8C8" VerticalAlignment="Center"/>
+        <TextBlock x:Name="StatusAuswahl" Grid.Column="2" Text="Auswahl: 0 Objekte" FontSize="11" Foreground="#C8C8C8" VerticalAlignment="Center"/>
+        <TextBlock x:Name="StatusMeldung" Grid.Column="3" Text="Fertig" FontSize="11" Foreground="#C8C8C8" VerticalAlignment="Center"/>
         <TextBlock Grid.Column="4" Text="mm" FontSize="11" Foreground="#C8C8C8" VerticalAlignment="Center" HorizontalAlignment="Right"/>
       </Grid>
     </Border>
@@ -88,10 +93,20 @@
       </ScrollViewer>
     </Border>
 
-    <!-- ============ Menueleiste (eigene deutsche Bezeichnungen) ============ -->
+    <!-- ============ Menueleiste (eigene deutsche Bezeichnungen, M5-b: echte Einträge) ============ -->
     <Menu DockPanel.Dock="Top" Height="26" Background="#1C1C1C" FontSize="12">
-      <MenuItem Header="Datei"/>
-      <MenuItem Header="Bearbeiten"/>
+      <MenuItem Header="Datei">
+        <MenuItem Header="Neu" InputGesture="Ctrl+N" Click="OnNeu"/>
+        <MenuItem Header="Öffnen …" InputGesture="Ctrl+O" Click="OnOeffnen"/>
+        <MenuItem Header="Speichern" InputGesture="Ctrl+S" Click="OnSpeichern"/>
+        <Separator/>
+        <MenuItem Header="Beenden" Click="OnBeenden"/>
+      </MenuItem>
+      <MenuItem Header="Bearbeiten">
+        <MenuItem x:Name="MenuUndo" Header="Rückgängig" InputGesture="Ctrl+Z" Click="OnUndo"/>
+        <MenuItem x:Name="MenuRedo" Header="Wiederholen" InputGesture="Ctrl+Y" Click="OnRedo"/>
+        <MenuItem x:Name="MenuLoeschen" Header="Auswahl löschen" InputGesture="Entf" Click="OnAuswahlLoeschen"/>
+      </MenuItem>
       <MenuItem Header="Anordnen"/>
       <MenuItem Header="Laserwerkzeuge"/>
       <MenuItem Header="Web-Werkzeuge"/>
@@ -104,13 +119,13 @@
     <Border DockPanel.Dock="Top" Background="#262626" Height="40" Padding="6,4">
       <Grid ColumnDefinitions="Auto,*,Auto">
         <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="2">
-          <Button Classes="leiste" ToolTip.Tip="Neues Projekt (Strg+N)">
+          <Button Classes="leiste" ToolTip.Tip="Neues Projekt (Strg+N)" Click="OnNeu">
             <Panel Width="14" Height="14">
               <Path Stroke="#D8D8D8" StrokeThickness="1.2" Data="M2.2 1 L8.5 1 L11.8 4.3 L11.8 13 L2.2 13 Z"/>
               <Path Stroke="#D8D8D8" StrokeThickness="1.2" Data="M8.5 1 L8.5 4.3 L11.8 4.3"/>
             </Panel>
           </Button>
-          <Button Classes="leiste" ToolTip.Tip="Projekt öffnen (Strg+O)">
+          <Button Classes="leiste" ToolTip.Tip="Projekt öffnen (Strg+O)" Click="OnOeffnen">
             <Panel Width="14" Height="14">
               <Path Stroke="#D8D8D8" StrokeThickness="1.2" Data="M1.5 3.2 H5.4 L7 4.8 H12.5 V12.2 H1.5 Z"/>
             </Panel>
@@ -121,17 +136,17 @@
               <Path Stroke="#D8D8D8" StrokeThickness="1.2" Data="M7 1.5 V6.5 M4.6 4.2 L7 6.6 L9.4 4.2"/>
             </Panel>
           </Button>
-          <Button Classes="leiste" ToolTip.Tip="Projekt speichern (Strg+S)">
+          <Button Classes="leiste" ToolTip.Tip="Projekt speichern (Strg+S)" Click="OnSpeichern">
             <Panel Width="14" Height="14">
               <Path Stroke="#D8D8D8" StrokeThickness="1.2" Data="M1.8 1.8 H12.2 V12.2 H1.8 Z M4.6 1.8 V5.4 H9.8 V1.8 M4.6 9.6 H9.8 V12.2"/>
             </Panel>
           </Button>
-          <Button Classes="leiste" ToolTip.Tip="Rückgängig (Strg+Z)">
+          <Button Classes="leiste" ToolTip.Tip="Rückgängig (Strg+Z)" Click="OnUndo">
             <Panel Width="14" Height="14">
               <Path Stroke="#D8D8D8" StrokeThickness="1.3" Data="M11 9.6 C11 5.6 7 4.4 4.4 6 M6.2 3.4 L3.6 6.2 L7.2 7"/>
             </Panel>
           </Button>
-          <Button Classes="leiste" ToolTip.Tip="Wiederholen (Strg+Y)">
+          <Button Classes="leiste" ToolTip.Tip="Wiederholen (Strg+Y)" Click="OnRedo">
             <Panel Width="14" Height="14">
               <Path Stroke="#D8D8D8" StrokeThickness="1.3" Data="M3 9.6 C3 5.6 7 4.4 9.6 6 M7.8 3.4 L10.4 6.2 L6.8 7"/>
             </Panel>
@@ -162,32 +177,20 @@
       </Grid>
     </Border>
 
-    <!-- ============ Eigenschaften-Leiste R2 ============ -->
+    <!-- ============ Eigenschaften-Leiste R2 (M5-b: live gebunden an die Auswahl) ============ -->
     <Border DockPanel.Dock="Top" Background="#262626" Height="38" Padding="6,3" BorderBrush="#1B1B1B" BorderThickness="0,0,0,1">
       <Grid ColumnDefinitions="Auto,*,Auto">
         <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="3">
           <TextBlock Text="XPos" FontSize="11" Foreground="#A8A8A8" VerticalAlignment="Center" Margin="4,0,2,0"/>
-          <TextBox Text="0,000" Width="56" Height="22" FontSize="11" Background="#313131" BorderBrush="#4A4A4A" Foreground="#E8E8E8" TextAlignment="Right"/>
-          <ComboBox Width="42" Height="22" FontSize="11" SelectedIndex="0">
-            <ComboBoxItem Content="mm"/><ComboBoxItem Content="%"/>
-          </ComboBox>
+          <TextBox x:Name="FeldXPos" Text="" Width="56" Height="22" FontSize="11" Background="#313131" BorderBrush="#4A4A4A" Foreground="#E8E8E8" TextAlignment="Right"/>
           <TextBlock Text="YPos" FontSize="11" Foreground="#A8A8A8" VerticalAlignment="Center" Margin="6,0,2,0"/>
-          <TextBox Text="0,000" Width="56" Height="22" FontSize="11" Background="#313131" BorderBrush="#4A4A4A" Foreground="#E8E8E8" TextAlignment="Right"/>
-          <ComboBox Width="42" Height="22" FontSize="11" SelectedIndex="0">
-            <ComboBoxItem Content="mm"/><ComboBoxItem Content="%"/>
-          </ComboBox>
+          <TextBox x:Name="FeldYPos" Text="" Width="56" Height="22" FontSize="11" Background="#313131" BorderBrush="#4A4A4A" Foreground="#E8E8E8" TextAlignment="Right"/>
           <TextBlock Text="Breite" FontSize="11" Foreground="#A8A8A8" VerticalAlignment="Center" Margin="8,0,2,0"/>
-          <TextBox Text="100,000" Width="64" Height="22" FontSize="11" Background="#313131" BorderBrush="#4A4A4A" Foreground="#E8E8E8" TextAlignment="Right"/>
-          <ComboBox Width="42" Height="22" FontSize="11" SelectedIndex="0">
-            <ComboBoxItem Content=" mm"/><ComboBoxItem Content=" %"/>
-          </ComboBox>
+          <TextBox x:Name="FeldBreite" Text="" Width="64" Height="22" FontSize="11" Background="#313131" BorderBrush="#4A4A4A" Foreground="#E8E8E8" TextAlignment="Right"/>
           <TextBlock Text="Höhe" FontSize="11" Foreground="#A8A8A8" VerticalAlignment="Center" Margin="6,0,2,0"/>
-          <TextBox Text="100,000" Width="64" Height="22" FontSize="11" Background="#313131" BorderBrush="#4A4A4A" Foreground="#E8E8E8" TextAlignment="Right"/>
-          <ComboBox Width="42" Height="22" FontSize="11" SelectedIndex="0">
-            <ComboBoxItem Content=" mm"/><ComboBoxItem Content=" %"/>
-          </ComboBox>
+          <TextBox x:Name="FeldHoehe" Text="" Width="64" Height="22" FontSize="11" Background="#313131" BorderBrush="#4A4A4A" Foreground="#E8E8E8" TextAlignment="Right"/>
           <TextBlock Text="Drehen" FontSize="11" Foreground="#A8A8A8" VerticalAlignment="Center" Margin="10,0,2,0"/>
-          <TextBox Text="0,00" Width="48" Height="22" FontSize="11" Background="#313131" BorderBrush="#4A4A4A" Foreground="#E8E8E8" TextAlignment="Right"/>
+          <TextBox x:Name="FeldDrehen" Text="0,00" Width="48" Height="22" FontSize="11" Background="#313131" BorderBrush="#4A4A4A" Foreground="#E8E8E8" TextAlignment="Right"/>
           <TextBlock Text="°" FontSize="11" Foreground="#A8A8A8" VerticalAlignment="Center" Margin="2,0,6,0"/>
         </StackPanel>
         <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="4">
@@ -209,44 +212,44 @@
       <!-- Linke Werkzeugspalte: 13 eigene Icons; Auswahl AKTIV markiert -->
       <Border Grid.Column="0" Background="#252525" BorderBrush="#1B1B1B" BorderThickness="0,0,1,0">
         <StackPanel Margin="2,4" Orientation="Vertical">
-          <Button Classes="werkzeug aktiv" ToolTip.Tip="Auswahl (Verschieben)">
+          <Button x:Name="WzAuswahl" Classes="werkzeug aktiv" ToolTip.Tip="Auswahl (Verschieben)" Click="OnWerkzeugAuswahl">
             <Panel Width="14" Height="14">
               <Path Fill="#E8E8E8" Data="M2 1 L2 12.4 L4.9 9.9 L6.9 14 L8.9 13.1 L6.9 9 L10.6 8.6 Z"/>
             </Panel>
           </Button>
-          <Button Classes="werkzeug" ToolTip.Tip="Knotenbearbeitung">
+          <Button x:Name="WzKnoten" Classes="werkzeug" ToolTip.Tip="Knotenbearbeitung">
             <Panel Width="14" Height="14">
               <Path Stroke="#D8D8D8" StrokeThickness="1.2" Data="M3.6 10.6 L10.6 3.6"/>
               <Ellipse Width="4" Height="4" Stroke="#D8D8D8" StrokeThickness="1.1" HorizontalAlignment="Left" VerticalAlignment="Bottom" Margin="1,0,0,1"/>
               <Ellipse Width="4" Height="4" Stroke="#D8D8D8" StrokeThickness="1.1" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="9,1,0,0"/>
             </Panel>
           </Button>
-          <Button Classes="werkzeug" ToolTip.Tip="Hand (Verschieben der Fläche)">
+          <Button x:Name="WzHand" Classes="werkzeug" ToolTip.Tip="Hand (Verschieben der Fläche)">
             <Panel Width="14" Height="14">
               <Path Fill="#D8D8D8" Data="M2.2 6.6 H12 V12.4 H2.2 Z M3.4 3 H4.6 V6.6 H3.4 Z M5.8 2.2 H7 V6.6 H5.8 Z M8 2.8 H9.2 V6.6 H8 Z M10 2 H11.2 V6.6 H10 Z"/>
             </Panel>
           </Button>
-          <Button Classes="werkzeug" ToolTip.Tip="Rechteck (F2)">
+          <Button x:Name="WzRechteck" Classes="werkzeug" ToolTip.Tip="Rechteck (F2)" Click="OnWerkzeugRechteck">
             <Panel Width="14" Height="14">
               <Path Stroke="#D8D8D8" StrokeThickness="1.3" Data="M1.8 2.6 H12.2 V11.4 H1.8 Z"/>
             </Panel>
           </Button>
-          <Button Classes="werkzeug" ToolTip.Tip="Ellipse (F3)">
+          <Button x:Name="WzEllipse" Classes="werkzeug" ToolTip.Tip="Ellipse (F3)" Click="OnWerkzeugEllipse">
             <Panel Width="14" Height="14">
               <Ellipse Width="11" Height="9" Stroke="#D8D8D8" StrokeThickness="1.3"/>
             </Panel>
           </Button>
-          <Button Classes="werkzeug" ToolTip.Tip="Polygon (F4)">
+          <Button x:Name="WzPolygon" Classes="werkzeug" ToolTip.Tip="Polygon (F4)">
             <Panel Width="14" Height="14">
               <Path Stroke="#D8D8D8" StrokeThickness="1.3" Data="M7 1.6 L12 5.2 L10.1 11 L3.9 11 L2 5.2 Z"/>
             </Panel>
           </Button>
-          <Button Classes="werkzeug" ToolTip.Tip="Linie (F5)">
+          <Button x:Name="WzLinie" Classes="werkzeug" ToolTip.Tip="Linie (F5)" Click="OnWerkzeugLinie">
             <Panel Width="14" Height="14">
               <Path Stroke="#D8D8D8" StrokeThickness="1.3" Data="M2.2 11.6 L11.8 2.4"/>
             </Panel>
           </Button>
-          <Button Classes="werkzeug" ToolTip.Tip="Text (F6)">
+          <Button x:Name="WzText" Classes="werkzeug" ToolTip.Tip="Text (F6)">
             <Panel Width="14" Height="14">
               <Panel>
                 <Panel>
@@ -255,33 +258,33 @@
               </Panel>
             </Panel>
           </Button>
-          <Button Classes="werkzeug" ToolTip.Tip="Bild einfügen">
+          <Button x:Name="WzBild" Classes="werkzeug" ToolTip.Tip="Bild einfügen">
             <Panel Width="14" Height="14">
               <Path Stroke="#D8D8D8" StrokeThickness="1.2" Data="M1.6 2 H12.4 V12 H1.6 Z"/>
               <Ellipse Width="2.8" Height="2.8" Stroke="#D8D8D8" StrokeThickness="1" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="3,4,0,0"/>
               <Path Stroke="#D8D8D8" StrokeThickness="1" Data="M3 11 L6 7.2 L7.8 9.4 M8 11 L9.8 8.6 L11.2 10.4"/>
             </Panel>
           </Button>
-          <Button Classes="werkzeug" ToolTip.Tip="Messen">
+          <Button x:Name="WzMessen" Classes="werkzeug" ToolTip.Tip="Messen">
             <Panel Width="14" Height="14">
               <Path Stroke="#D8D8D8" StrokeThickness="1.2" Data="M1.6 4 H12.4 V10.4 H1.6 Z M4 4 V6.2 M6.4 4 V7.4 M8.8 4 V6.2 M11 4 V7.4"/>
             </Panel>
           </Button>
           <!-- Gruppentrennung: Erstellungen (oben) | Modifikatoren (unten) — Bibel-Zweispaltenlogik als Trennstrich -->
           <Border Height="1" Width="30" Background="#3F3F3F" HorizontalAlignment="Center" Margin="2,3"/>
-          <Button Classes="werkzeug" ToolTip.Tip="Trimmen">
+          <Button x:Name="WzTrimmen" Classes="werkzeug" ToolTip.Tip="Trimmen">
             <Panel Width="14" Height="14">
               <Ellipse Width="3.4" Height="3.4" Stroke="#D8D8D8" StrokeThickness="1.1" HorizontalAlignment="Left" VerticalAlignment="Bottom" Margin="0.6,0,0,0.6"/>
               <Ellipse Width="3.4" Height="3.4" Stroke="#D8D8D8" StrokeThickness="1.1" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="0.6,0.6,0,0"/>
               <Path Stroke="#D8D8D8" StrokeThickness="1.2" Data="M2.6 11 L11.4 2.6 M11.4 11 L6.4 6.4"/>
             </Panel>
           </Button>
-          <Button Classes="werkzeug" ToolTip.Tip="Laschen">
+          <Button x:Name="WzLaschen" Classes="werkzeug" ToolTip.Tip="Laschen">
             <Panel Width="14" Height="14">
               <Path Stroke="#D8D8D8" StrokeThickness="1.2" Data="M3.4 1.8 H1.6 V12.2 H3.4 M10.6 1.8 H12.4 V12.2 H10.6 M5.4 4.4 H8.6 V9.6 H5.4 Z"/>
             </Panel>
           </Button>
-          <Button Classes="werkzeug" ToolTip.Tip="Vertexten">
+          <Button x:Name="WzVertexten" Classes="werkzeug" ToolTip.Tip="Vertexten">
             <Panel Width="14" Height="14">
               <Path Stroke="#D8D8D8" StrokeThickness="1.2" Data="M2 11.6 L7 2.4 L12 11.6 Z"/>
               <Ellipse Width="3" Height="3" Stroke="#D8D8D8" StrokeThickness="1" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,5,0,0"/>
@@ -290,9 +293,9 @@
         </StackPanel>
       </Border>
 
-      <!-- Arbeitsfläche: hell im dunklen Fenster (Bibel-Kern) -->
+      <!-- Arbeitsfläche: hell im dunklen Fenster (Bibel-Kern), M5-b: interaktiv -->
       <Border Grid.Column="1" Background="#FFFFFF" Margin="2,3,2,0" ClipToBounds="True">
-        <local:Arbeitsflaeche HorizontalAlignment="Stretch" VerticalAlignment="Stretch"/>
+        <local:Arbeitsflaeche x:Name="Flaeche" HorizontalAlignment="Stretch" VerticalAlignment="Stretch"/>
       </Border>
 
       <!-- ============ Rechts-Panel ============ -->
@@ -312,45 +315,27 @@
             </Border>
           </Grid>
 
-          <!-- Tab-Inhalte (6 Panels, Sichtbarkeit je aktiver Tab) -->
+          <!-- Tab-Inhalte (7 Panels, Sichtbarkeit je aktiver Tab) -->
           <Grid Grid.Row="1" Margin="0,6,0,6">
 
-            <!-- Tab Konsole (aktiv, Bibel: dunkle Konsole + rote 1. Zeile + Eingabe) -->
-            <Grid x:Name="TabKonsole" RowDefinitions="*,30" Background="#141414">
-              <StackPanel Grid.Row="0" Margin="8,6,8,0" Orientation="Vertical">
-                <TextBlock Text="Auf Verbindung warten …" FontSize="12" Foreground="#FF6B6B"/>
-              </StackPanel>
-              <Grid Grid.Row="1" ColumnDefinitions="*,92" Margin="8,6,8,8">
-                <TextBox Grid.Column="0" PlaceholderText="Befehl eingeben…" Height="24" FontSize="11" Background="#2E2E2E" BorderBrush="#4A4A4A" Foreground="#E8E8E8"/>
-                <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="3" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="6,0,0,0">
-                  <TextBlock Text="Alle anzeigen" FontSize="11" Foreground="#D8D8D8"/>
-                  <Panel Width="8" Height="9"><Path Stroke="#D8D8D8" StrokeThickness="1.1" Data="M0.5 0.5 L4 4 L7.5 0.5"/></Panel>
-                </StackPanel>
+            <!-- Tab Schnitte/Ebenen (M5-b: echte Liste aus dem Core-Projekt) -->
+            <Grid x:Name="TabEbenen" IsVisible="False" RowDefinitions="Auto,Auto,*" Background="#1D1D1D">
+              <TextBlock Grid.Row="0" Text="Schnitte/Ebenen (live aus dem Projekt)" FontSize="11" Foreground="#9A9A9A" Margin="8,6,8,2"/>
+              <Grid Grid.Row="1" Margin="8,2,8,2" ColumnDefinitions="18,64,74,54,54,38,44">
+                <TextBlock Text="" FontSize="9" Foreground="#8A8A8A"/>
+                <TextBlock Grid.Column="1" Text="Name" FontSize="9" Foreground="#8A8A8A"/>
+                <TextBlock Grid.Column="2" Text="Modus" FontSize="9" Foreground="#8A8A8A"/>
+                <TextBlock Grid.Column="3" Text="Leistung %" FontSize="9" Foreground="#8A8A8A"/>
+                <TextBlock Grid.Column="4" Text="Tempo mm/s" FontSize="9" Foreground="#8A8A8A"/>
+                <TextBlock Grid.Column="5" Text="Aus" FontSize="9" Foreground="#8A8A8A"/>
+                <TextBlock Grid.Column="6" Text="Sichtbar" FontSize="9" Foreground="#8A8A8A"/>
               </Grid>
+              <ScrollViewer Grid.Row="2" Padding="0">
+                <StackPanel x:Name="EbenenListe" Spacing="2" Margin="8,0,8,8"/>
+              </ScrollViewer>
             </Grid>
 
-            <!-- Tab Schnitte/Ebenen -->
-            <Grid x:Name="TabEbenen" IsVisible="False" RowDefinitions="Auto,*" Background="#1D1D1D">
-              <TextBlock Grid.Row="0" Text="Ebenen-Übersicht (Palette wie Layer-Leiste)" FontSize="11" Foreground="#9A9A9A" Margin="8,6"/>
-              <StackPanel Grid.Row="1" Margin="8,0,8,8" Spacing="4">
-                <Border Background="#262626" CornerRadius="2" Padding="6,4">
-                  <Grid ColumnDefinitions="16,8,Auto,*">
-                    <Ellipse Width="12" Height="12" Fill="#FF0000"/>
-                    <TextBlock Grid.Column="2" Text="Layer 01 — Schneiden" FontSize="11" Foreground="#D8D8D8" VerticalAlignment="Center"/>
-                    <TextBlock Grid.Column="3" Text="Aus" FontSize="10" Foreground="#8A8A8A" HorizontalAlignment="Right" VerticalAlignment="Center"/>
-                  </Grid>
-                </Border>
-                <Border Background="#262626" CornerRadius="2" Padding="6,4">
-                  <Grid ColumnDefinitions="16,8,Auto,*">
-                    <Ellipse Width="12" Height="12" Fill="#000000"/>
-                    <TextBlock Grid.Column="2" Text="Layer 00 — Schneiden" FontSize="11" Foreground="#D8D8D8" VerticalAlignment="Center"/>
-                    <TextBlock Grid.Column="3" Text="Ein" FontSize="10" Foreground="#8A8A8A" HorizontalAlignment="Right" VerticalAlignment="Center"/>
-                  </Grid>
-                </Border>
-              </StackPanel>
-            </Grid>
-
-            <!-- Tab Bewegen (Jog-Platzhalter, keine Maschinensteuerung) -->
+            <!-- Tab Bewegen (Jog-Panel, Maschine stays fern — Projektregel) -->
             <Grid x:Name="TabBewegen" IsVisible="False" ColumnDefinitions="Auto,10,*" Background="#1D1D1D">
               <StackPanel Grid.Column="0" Width="150" Spacing="4" Margin="8,8,0,8">
                 <Grid ColumnDefinitions="*,4,*">
@@ -367,7 +352,19 @@
                 </Grid>
                 <Button Classes="klein" Content="Zur Ausgangsposition gehen"/>
               </StackPanel>
-              <TextBlock Grid.Column="2" Text="Nur Anzeige — Steuerung folgt in M5-b (Projektregel: Maschine fern)." FontSize="10" Foreground="#8A8A8A" TextWrapping="Wrap" VerticalAlignment="Center" Margin="4,8"/>
+              <TextBlock Grid.Column="2" Text="Nur Anzeige — Steuerung erst in der M4-Live-Phase (Projektregel: Maschine fern)." FontSize="10" Foreground="#8A8A8A" TextWrapping="Wrap" VerticalAlignment="Center" Margin="4,8"/>
+            </Grid>
+
+            <!-- Tab Konsole (M5-b: Log-Fenster + gesperrte Eingabe ohne Verbindung) -->
+            <Grid x:Name="TabKonsole" RowDefinitions="*,Auto,Auto" Background="#141414">
+              <ScrollViewer Grid.Row="0" Margin="8,6,8,0" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+                <StackPanel x:Name="KonsoleLog" Orientation="Vertical"/>
+              </ScrollViewer>
+              <TextBlock x:Name="KonsoleHinhalt" Grid.Row="1" Text="Keine Verbindung — Gerät verbinden" FontSize="10" Foreground="#FF9C6B" Margin="8,4,8,0"/>
+              <Grid Grid.Row="2" ColumnDefinitions="*,74" Margin="8,4,8,8">
+                <TextBox x:Name="KonsoleEingabe" PlaceholderText="Befehl eingeben…" Height="24" FontSize="11" Background="#2E2E2E" BorderBrush="#4A4A4A" Foreground="#E8E8E8" IsEnabled="False"/>
+                <Button x:Name="KonsoleSenden" Grid.Column="1" Classes="klein" Content="Senden" IsEnabled="False" VerticalAlignment="Center" Height="24" Margin="6,0,0,0"/>
+              </Grid>
             </Grid>
 
             <!-- Tab Makros -->
@@ -397,9 +394,21 @@
                 <TextBlock Text="Mehrseitige Projekte folgen in M6." FontSize="11" Foreground="#9A9A9A" TextWrapping="Wrap"/>
               </StackPanel>
             </Grid>
+
+            <!-- Tab Vorschau (M5-b: echter Core-Simulator PreviewSimulator.Simuliere) -->
+            <Grid x:Name="TabVorschau" IsVisible="False" RowDefinitions="Auto,Auto,*,Auto" Background="#1D1D1D">
+              <StackPanel Grid.Row="0" Orientation="Horizontal" Spacing="6" Margin="8,6">
+                <Button x:Name="VorschauKnopf" Classes="klein" Content="Vorschau aktualisieren" Click="OnVorschauAktualisieren"/>
+                <TextBlock x:Name="VorschauZeit" Text="Noch nicht simuliert" FontSize="11" Foreground="#D8D8D8" VerticalAlignment="Center"/>
+              </StackPanel>
+              <Border Grid.Row="2" Background="#FFFFFF" BorderBrush="#3A3A3A" BorderThickness="1" CornerRadius="2" Margin="8,4,8,2" ClipToBounds="True">
+                <Image x:Name="VorschauBild" Stretch="Uniform"/>
+              </Border>
+              <TextBlock Grid.Row="3" Text="Simulation: LaserForge.Core.Pipeline.PreviewSimulator — graue Pixelmatrix (1 px/mm) über Konturen + Scan-Raster." FontSize="9" Foreground="#8A8A8A" Margin="8,2,8,6" TextWrapping="Wrap"/>
+            </Grid>
           </Grid>
 
-          <!-- Tab-Leiste: 6 eigene Tab-Knöpfe in einer Zeile (Bibel-Reihenfolge); aktiv = hell -->
+          <!-- Tab-Leiste: zuerst die 6 Bibel-Tabs, dann Vorschau (M5-b-Zusatz) -->
           <StackPanel Grid.Row="2" Background="#232323" Orientation="Horizontal">
             <Button x:Name="TabKnopf0" Classes="tab" Content="Schnitte/Ebenen" Click="OnTabKnopf"/>
             <Button x:Name="TabKnopf1" Classes="tab" Content="Bewegen" Click="OnTabKnopf"/>
@@ -407,6 +416,7 @@
             <Button x:Name="TabKnopf3" Classes="tab" Content="Makros" Click="OnTabKnopf"/>
             <Button x:Name="TabKnopf4" Classes="tab" Content="Kamera/Overlays" Click="OnTabKnopf"/>
             <Button x:Name="TabKnopf5" Classes="tab" Content="Seiten" Click="OnTabKnopf"/>
+            <Button x:Name="TabKnopf6" Classes="tab" Content="Vorschau" Click="OnTabKnopf"/>
           </StackPanel>
 
           <!-- Laser-Band (rot) -->
