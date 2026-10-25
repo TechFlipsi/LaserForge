@@ -41,7 +41,9 @@ public partial class MainWindow : Window
     {
         InitializeComponent();
         BaueLayerleiste();
-       AktualisiereTabs();
+        // Bibelvorgabe: Konsole-Tab aktiv (Index 2) — erst im Konstruktor, nicht im Init-Event.
+        TabLeiste.SelectedIndex = 2;
+        AktualisiereTabs();
     }
 
     /// <summary>Baut die untere Layer-Leiste: Farbchips 00..30 + T1/T2 mit Kontrast-Schrift.</summary>
@@ -64,8 +66,8 @@ public partial class MainWindow : Window
                     Text = nummer,
                     FontSize = 10,
                     Foreground = new SolidColorBrush(ChipTextfarbe(farbe)),
-                    HorizontalAlignment = HorizontalAlignment.Center,
-                    VerticalAlignment = VerticalAlignment.Center,
+                    HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center,
+                    VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center,
                 },
             });
         }
@@ -83,13 +85,39 @@ public partial class MainWindow : Window
 
     private void AktualisiereTabs()
     {
+        // Null-robust: SelectionChanged kann während des XAML-Inits feuern (Felder noch null).
+        if (TabLeiste is null)
+        {
+            return;
+        }
         int idx = Math.Clamp(TabLeiste.SelectedIndex, 0, TabNamen.Length - 1);
-        TabTitel.Text = TabNamen[idx];
-        TabEbenen.IsVisible = idx == 0;
-        TabBewegen.IsVisible = idx == 1;
-        TabKonsole.IsVisible = idx == 2;
-        TabMakros.IsVisible = idx == 3;
-        TabKamera.IsVisible = idx == 4;
-        TabSeiten.IsVisible = idx == 5;
+        if (TabTitel is not null)
+        {
+            TabTitel.Text = TabNamen[idx];
+        }
+        if (TabEbenen is not null)
+        {
+            TabEbenen.IsVisible = idx == 0;
+        }
+        if (TabBewegen is not null)
+        {
+            TabBewegen.IsVisible = idx == 1;
+        }
+        if (TabKonsole is not null)
+        {
+            TabKonsole.IsVisible = idx == 2;
+        }
+        if (TabMakros is not null)
+        {
+            TabMakros.IsVisible = idx == 3;
+        }
+        if (TabKamera is not null)
+        {
+            TabKamera.IsVisible = idx == 4;
+        }
+        if (TabSeiten is not null)
+        {
+            TabSeiten.IsVisible = idx == 5;
+        }
     }
 }

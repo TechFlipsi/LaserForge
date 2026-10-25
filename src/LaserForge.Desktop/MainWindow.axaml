@@ -384,7 +384,7 @@
           </Grid>
 
           <!-- Tab-Leiste: 6 Tabs in Bibel-Reihenfolge; aktiv = hell auf dunklem Feld -->
-          <TabStrip Grid.Row="2" x:Name="TabLeiste" FontSize="11" SelectedIndex="2" SelectionChanged="OnTabWechsel" Background="#232323">
+          <TabStrip Grid.Row="2" x:Name="TabLeiste" FontSize="11" SelectionChanged="OnTabWechsel" Background="#232323">
             <TabItem Header="Schnitte/Ebenen"/>
             <TabItem Header="Bewegen"/>
             <TabItem Header="Konsole"/>

@@ -11,6 +11,7 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\LaserForge.Core\LaserForge.Core.csproj" />
     <ProjectReference Include="..\..\src\LaserForge.Devices\LaserForge.Devices.csproj" />
+    <ProjectReference Include="..\..\src\LaserForge.Api\LaserForge.Api.csproj" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Fixtures\**\*" CopyToOutputDirectory="PreserveNewest" />

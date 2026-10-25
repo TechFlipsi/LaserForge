@@ -7,6 +7,10 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "LaserForge.Core", "src\Lase
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "LaserForge.Devices", "src\LaserForge.Devices\LaserForge.Devices.csproj", "{1A2C9D02-8C44-4B6E-9A10-3FB1C0DE5502}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "LaserForge.Api", "src\LaserForge.Api\LaserForge.Api.csproj", "{1A2C9D03-8C44-4B6E-9A10-3FB1C0DE5503}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "LaserForge.Cli", "src\LaserForge.Cli\LaserForge.Cli.csproj", "{1A2C9D05-8C44-4B6E-9A10-3FB1C0DE5505}"
+EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "LaserForge.Tests", "tests\LaserForge.Tests\LaserForge.Tests.csproj", "{1A2C9D06-8C44-4B6E-9A10-3FB1C0DE5506}"
 EndProject
 Global
@@ -23,6 +27,14 @@ Global
 		{1A2C9D02-8C44-4B6E-9A10-3FB1C0DE5502}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{1A2C9D02-8C44-4B6E-9A10-3FB1C0DE5502}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{1A2C9D02-8C44-4B6E-9A10-3FB1C0DE5502}.Release|Any CPU.Build.0 = Release|Any CPU
+		{1A2C9D03-8C44-4B6E-9A10-3FB1C0DE5503}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{1A2C9D03-8C44-4B6E-9A10-3FB1C0DE5503}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{1A2C9D03-8C44-4B6E-9A10-3FB1C0DE5503}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{1A2C9D03-8C44-4B6E-9A10-3FB1C0DE5503}.Release|Any CPU.Build.0 = Release|Any CPU
+		{1A2C9D05-8C44-4B6E-9A10-3FB1C0DE5505}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{1A2C9D05-8C44-4B6E-9A10-3FB1C0DE5505}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{1A2C9D05-8C44-4B6E-9A10-3FB1C0DE5505}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{1A2C9D05-8C44-4B6E-9A10-3FB1C0DE5505}.Release|Any CPU.Build.0 = Release|Any CPU
 		{1A2C9D06-8C44-4B6E-9A10-3FB1C0DE5506}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{1A2C9D06-8C44-4B6E-9A10-3FB1C0DE5506}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{1A2C9D06-8C44-4B6E-9A10-3FB1C0DE5506}.Release|Any CPU.ActiveCfg = Release|Any CPU
