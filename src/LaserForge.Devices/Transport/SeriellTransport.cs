@@ -36,6 +36,11 @@ public sealed class SeriellTransport : ITransport
         if (_ser is not { IsOpen: true }) throw new InvalidOperationException("Serielle Verbindung nicht offen.");
         _ser.Write(zeile.TrimEnd('\r', '\n') + "\r\n");
     }
+    public void SchreibenRoh(string text)
+    {
+        if (_ser is not { IsOpen: true }) throw new InvalidOperationException("Serielle Verbindung nicht offen.");
+        _ser.Write(text);
+    }
     public string? LesenZeile(int timeoutMs = 100)
     {
         if (_ser is not { IsOpen: true }) return null;

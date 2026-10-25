@@ -15,18 +15,32 @@ public sealed class GrblVerbindung
     {
         Transport.Oeffnen();
         BegruessungZeilen.Clear();
-        for (int i = 0; i < 20; i++)
+        // Begruessung geduldig abholen: Boot nach DTR-Reset dauert 2-3s+, FW-Antworten
+        // kommen mit 600-1500ms Latenz (MKS-DLC32-Lernreihe); bis 10s Gesamtfenster.
+        var ende = DateTime.UtcNow.AddSeconds(10);
+        while (DateTime.UtcNow < ende)
         {
-            var z = Transport.LesenZeile(300);
-            if (z is null) break;
+            var z = Transport.LesenZeile(250);
+            if (z is null) continue;
             BegruessungZeilen.Add(z);
-            if (z == "ok") break;
+            if (z.StartsWith("[VER", StringComparison.OrdinalIgnoreCase) ||
+                z.StartsWith("Grbl", StringComparison.OrdinalIgnoreCase) ||
+                z == "ok")
+                break;
         }
     }
     public GrblStatus? StatusHolen()
     {
-        Transport.SchreibenZeile("?");
-        return GrblStatus.AusZeile(Transport.LesenZeile(600));
+        Transport.SchreibenRoh("?");
+        // Status-Report abwarten (FW-Latenz 600-1500ms): bis 3s auf "<...>"-Zeile warten
+        var ende = DateTime.UtcNow.AddSeconds(3);
+        while (DateTime.UtcNow < ende)
+        {
+            var z = Transport.LesenZeile(200);
+            if (z is not null && z.StartsWith('<') && z.EndsWith('>'))
+                return GrblStatus.AusZeile(z);
+        }
+        return null;
     }
     public bool Joggen(string achse, double mm, double feedMmMin)
     {

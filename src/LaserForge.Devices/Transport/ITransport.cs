@@ -6,5 +6,7 @@ public interface ITransport : IDisposable
     void Oeffnen();
     void Schliessen();
     void SchreibenZeile(string zeile);
+    /// <summary>Echtzeit-Zeichen (z.B. ?, ~, !, 0x18) OHNE Zeilenende rausschicken.</summary>
+    void SchreibenRoh(string text);
     string? LesenZeile(int timeoutMs = 100);
 }

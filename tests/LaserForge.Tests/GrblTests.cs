@@ -13,6 +13,7 @@ public class GrblTests
         public void Oeffnen() { }
         public void Schliessen() { }
         public void SchreibenZeile(string zeile) => Gesendet.Add(zeile);
+        public void SchreibenRoh(string text) => Gesendet.Add(text);
         public string? LesenZeile(int timeoutMs = 100) => _antworten.Count > 0 ? _antworten.Dequeue() : null;
         public void Dispose() { }
     }
