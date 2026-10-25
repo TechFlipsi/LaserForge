@@ -17,11 +17,9 @@ git commit -q -m "release: $TAG" 2>/dev/null || true
 git tag -f "$TAG" -m "$TITEL"
 git push origin "$TAG" > /dev/null
 
-echo "### Windows-Publish (dotnet publish)"
-dotnet publish src/LaserForge.Desktop/LaserForge.Desktop.csproj -c Release -r win-x64 --self-contained false \
-    -o "$AUSGABE/publish" -v q
-dotnet publish src/LaserForge.Cli/LaserForge.Cli.csproj -c Release -r win-x64 --self-contained false \
-    -o "$AUSGABE/publish" -v q
+echo "### Windows-Publish — am stand-pc (kibot hat kein dotnet)"
+ssh -o BatchMode=yes stand-pc "cd /d C:\\Users\\Fabia\\ForgeKern && dotnet publish C:\\Users\\Fabia\\ForgeKern\\src\\LaserForge.Desktop\\LaserForge.Desktop.csproj -c Release -r win-x64 --self-contained false -o C:\\Users\\Fabia\\ForgeKern\\publish -v q"
+scp -q -r "stand-pc:C:/Users/Fabia/ForgeKern/publish/*" "$AUSGABE/publish/"
 
 echo "### Zip bauen"
 rm -f "$AUSGABE/LaserForge-$TAG-win-x64.zip"
