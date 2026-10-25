@@ -10,6 +10,7 @@ using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Media;
 using Avalonia.Media.Imaging;
+using Avalonia.Platform.Storage;
 using LaserForge.Core.Einstellungen;
 using LaserForge.Core.Formate;
 using LaserForge.Core.Formen;

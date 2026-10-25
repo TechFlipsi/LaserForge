@@ -143,10 +143,10 @@ public class Arbeitsflaeche : Control
 
         // Geist des laufenden Ziehvorgangs (orange, gestrichelt).
         if (geist is { } g)
-            ZeichneForm(ctx, g, GeistOrange, true);
+            ZeichneForm(ctx, g, AuswahlFarbeT, true);
 
         // ---- Auswahlrahmen (orange gestrichelt) je ausgewählter Form.
-        var auswahlStift = new Pen(AuswahlOrange, 1, new DashStyle(new double[] { 4, 3 }, 0));
+        var auswahlStift = new Pen(new SolidColorBrush(AuswahlFarbeT), 1, new DashStyle(new double[] { 4, 3 }, 0));
         foreach (var f in Ausgewaehlt)
         {
             var box = LayerFarben.BoxMM(f, 0.4);
@@ -157,7 +157,7 @@ public class Arbeitsflaeche : Control
             ctx.DrawRectangle(null, auswahlStift, rahmen);
 
             // Ecken-Marken (kleine gefüllte Quadrate — visuelle Auswahl-Rahmen-Kanten).
-            var eckeBrush = new SolidColorBrush(Color.Parse("#FF9900"));
+            var eckeBrush = new SolidColorBrush(AuswahlFarbeT);
             foreach (var (ex, ey) in new (double, double)[]
                      { (rahmen.X, rahmen.Y), (rahmen.X + rahmen.Width, rahmen.Y),
                        (rahmen.X, rahmen.Y + rahmen.Height), (rahmen.X + rahmen.Width, rahmen.Y + rahmen.Height) })
@@ -205,11 +205,11 @@ public class Arbeitsflaeche : Control
     }
 
     /// <summary>Zeichnet eine Form (Zuege → Pixel-Polylinien); optional gestrichelt (Geist).</summary>
-    private void ZeichneForm(DrawingContext ctx, Form f, IBrush farbe, bool gestrichelt)
+    private void ZeichneForm(DrawingContext ctx, Form f, Color farbe, bool gestrichelt)
     {
         var stift = gestrichelt
-            ? new Pen(farbe, 1.4, new DashStyle(new double[] { 4, 3 }, 0))
-            : new Pen(farbe, 1.4);
+            ? new Pen(new SolidColorBrush(farbe), 1.4, new DashStyle(new double[] { 4, 3 }, 0))
+            : new Pen(new SolidColorBrush(farbe), 1.4);
         foreach (var z in f.ZuZuege())
         {
             if (z.Punkte.Count < 2) continue;

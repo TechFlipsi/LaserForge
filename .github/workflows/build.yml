@@ -1,0 +1,42 @@
+name: build
+
+on:
+  push:
+    branches: [ main ]
+    tags: [ 'v*' ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  bau:
+    name: Windows-Bau + Tests
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: .NET 10 SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Wiederherstellen
+        run: dotnet restore LaserForge.sln
+
+      - name: Bauen
+        run: dotnet build LaserForge.sln -c Release --no-restore
+
+      - name: Testen
+        run: dotnet test tests/LaserForge.Tests/LaserForge.Tests.csproj -c Release --no-build -v q
+
+      - name: Publish-Artefakt (Release-Tags)
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: |
+          dotnet publish src/LaserForge.Desktop/LaserForge.Desktop.csproj -c Release -r win-x64 --self-contained false -o out/publish
+          Compress-Archive -Path out/publish/* -DestinationPath out/LaserForge-${{ github.ref_name }}-win-x64.zip
+
+      - name: Release anfügen
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: out/LaserForge-${{ github.ref_name }}-win-x64.zip
