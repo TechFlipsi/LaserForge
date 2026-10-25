@@ -1,0 +1,3 @@
+fenster 1: hwnd=23662172 titel='LaserForge' sichtbar=True minimiert=False groesse=1602x932
+gespeichert: C:\Users\Fabia\.forge-qa\out\LaserForge.Desktop_1_23662172.png printwindow=True
+desktop_gespeichert: C:\Users\Fabia\.forge-qa\out\desktop.png (1920x1080)

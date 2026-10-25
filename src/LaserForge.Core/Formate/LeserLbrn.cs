@@ -66,6 +66,9 @@ public static class LeserLbrn
         foreach (var sh in wurzel.Elements("Shape"))
             p.Formen.Add(LesenForm(sh));
         // VariableText / Notes / UIPrefs (Format-Realnamen) + Rest-Knoten verlustfrei
+        var thumb = wurzel.Element("Thumbnail");
+        if (thumb is not null)
+            p.ThumbnailBasis64 = thumb.GetString("Source");
         var vt = wurzel.Element("VariableText");
         if (vt is not null)
         {

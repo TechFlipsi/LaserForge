@@ -24,6 +24,9 @@ public sealed class Notizen
 public sealed class Projekt
 {
     public string AppVersion { get; set; } = "1.0.0";
+    /// <summary>Vorschaubild als Base64-PNG (250x250) — beim Ablauf-Speichern automatisch erzeugt.</summary>
+    public string? ThumbnailBasis64 { get; set; }
+    /// <summary>Falls gesetzt: Geraetename im Projekt (kompatibler Zusatzkontext) — z.B. „Elegoo“.</summary>
     public string FormatVersion { get; set; } = "0";
     public double MaterialHeight { get; set; }
     public bool MirrorX { get; set; }

@@ -20,6 +20,8 @@ public static class SchreiberLbrn
             new XAttribute("MaterialHeight", Doppel(p.MaterialHeight)),
             new XAttribute("MirrorX", Boolsch(p.MirrorX)),
             new XAttribute("MirrorY", Boolsch(p.MirrorY)));
+        if (!string.IsNullOrWhiteSpace(p.ThumbnailBasis64))
+            wurzel.Add(new XElement("Thumbnail", new XAttribute("Source", p.ThumbnailBasis64)));
         if (p.VariableText is { } vtBlock)
         {
             var vtEl = new XElement("VariableText");
