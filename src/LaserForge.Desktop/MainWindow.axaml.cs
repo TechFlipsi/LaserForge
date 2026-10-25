@@ -67,7 +67,6 @@ public partial class MainWindow : Window
         BaueLayerleiste();
         BaueEbenenListe();
         KonsoleAnfang();
-        PropLeisteVerdrahten();
 
         aktiverTab = Math.Clamp(StartEinstellung.Tab, 0, TabNamen.Length - 1);
         if (StartEinstellung.Maximieren)
@@ -86,7 +85,39 @@ public partial class MainWindow : Window
             Flaeche.AlleAuswaehlen();
         }
         TitelAnzeigen();
+        PropLeisteVerdrahten();
         PropLeisteBeleben();
+
+        // QA-Automatik: verzögerter Zug (App-interne Verschiebung) + Rückgängig.
+        if (StartEinstellung.ZugMM.Length > 0 || StartEinstellung.UndoQA)
+        {
+            var timer = new Avalonia.Threading.DispatcherTimer { Interval = TimeSpan.FromMilliseconds(StartEinstellung.WarteMs) };
+            timer.Tick += (_, _) =>
+            {
+                timer.Stop();
+                var teile = StartEinstellung.ZugMM.Split(',');
+                if (teile.Length == 2 && double.TryParse(teile[0], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out double dx)
+                    && double.TryParse(teile[1], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out double dy))
+                {
+                    if (Flaeche.Quelle is { } quelle)
+                    {
+                        Flaeche.AuswahlSetzen(quelle.Formen);
+                    }
+                    VerschiebeAuswahl(dx, dy);
+                }
+                if (StartEinstellung.UndoQA)
+                {
+                    var timer2 = new Avalonia.Threading.DispatcherTimer { Interval = TimeSpan.FromMilliseconds(900) };
+                    timer2.Tick += (_, _) =>
+                    {
+                        timer2.Stop();
+                        Undo();
+                    };
+                    timer2.Start();
+                }
+            };
+            timer.Start();
+        }
     }
 
     // ================================================== Layer-Leiste
@@ -313,7 +344,16 @@ public partial class MainWindow : Window
     {
         PropLeisteBeleben();
         dokument.Melden();   // leichtgewichtig (kein Listen-Rebuild, kein Auswahl-Reset)
+        StatusAuswahl.Text = "Auswahl: " + Flaeche.Ausgewaehlt.Count
+            + (Flaeche.Ausgewaehlt.Count == 1 ? " Objekt" : " Objekte");
         MenuLoeschen.IsEnabled = Flaeche.Ausgewaehlt.Count > 0;
+        if (StartEinstellung.Info)
+        {
+            var b = AuswahlUnion(0.0);
+            StatusMeldung.Text = Flaeche.Ausgewaehlt.Count > 0
+                ? string.Format(Dokument.Deutsch, "B: {0:0.##} · {1:0.##} -> {2:0.##} · {3:0.##} mm", b.minX, b.minY, b.maxX, b.maxY)
+                : "Fertig";
+        }
     }
 
     /// <summary>Fenster-Titel aus dem Dokument (&lt;Dateiname&gt; - GRBL - LaserForge).</summary>

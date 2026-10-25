@@ -16,6 +16,18 @@ public static class StartEinstellung
 
     /// <summary>Gesamte Formen beim Start auswählen (QA-Auswahlrahmen/Nachweis).</summary>
     public static bool AuswahlAlle;
+
+    /// <summary>Statuszeile zeigt die Auswahl-Box in mm (App-interne Beweis-Zahl für QA).</summary>
+    public static bool Info;
+
+    /// <summary>QA-Zug der gesamten Auswahl beim Start: "dx;dy" in mm (App-interne Zug-Automation).</summary>
+    public static string ZugMM = "";
+
+    /// <summary>QA: 0,9 s nach dem Zug einmal Rückgängig (Klone-Stapel-Beweis).</summary>
+    public static bool UndoQA;
+
+    /// <summary>Verzögerung der QA-Automatik (ms) — zum Rhythmus-Machen der Capture.</summary>
+    public static int WarteMs = 700;
 }
 
 internal static class Program
@@ -40,6 +52,18 @@ internal static class Program
             else if (string.Equals(a, "--qa-auswahl", StringComparison.OrdinalIgnoreCase))
             {
                 StartEinstellung.AuswahlAlle = true;
+            }
+            else if (string.Equals(a, "--qa-info", StringComparison.OrdinalIgnoreCase))
+            {
+                StartEinstellung.Info = true;
+            }
+            else if (a.StartsWith("--qa-zug=", StringComparison.Ordinal))
+            {
+                StartEinstellung.ZugMM = a[9..].Trim('"');
+            }
+            else if (string.Equals(a, "--qa-undo", StringComparison.OrdinalIgnoreCase))
+            {
+                StartEinstellung.UndoQA = true;
             }
         }
         BuildAvaloniaApp().StartWithClassicDesktopLifetime(args);
