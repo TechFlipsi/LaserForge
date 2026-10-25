@@ -25,20 +25,20 @@
 
 - **Was es ist:** Windows-Only, .NET/C#-Desktop-App (aus dem Repository), **GPL** (LICENSE.md mit GPL-Hinweis und Copyright 2016 Diego Settimi); die populärste freie Bedienoberfläche für **GRBL-Diodenlaser**.
 - **Geräte-/Firmware-Umfang:** GRBL-Firmware (v0.9 **und** v1.1) über serielle Verbindung; WLAN-Zubehör via ESP8266-/WebSocket-Anbindung. Setzt für volle Leistung **GCode-`S`-Leistungsmusterung** voraus.
-- **Funktionsumfang (eigene Zusammenfassung der README-Liste):** Laden von GCode mit Lauf-/Schneidvoransicht (inkl. Graustufen-/Alphablend-Darstellung); Bildimporte mit zeilenbasiertem Raster (horizontal/vertikal/diagonal), mit Vektorisierung oder 1-Bit-Dithering; SVG-Import als experimentell; Farbschemata passend zu Schutzbrillen; eigene Knöpfe (Nutzer-Makroknöpfe); GRBL-Konfiguration Import/Export; **Alarm-/Error-/Einstell-Decoder mit Klartext-Tooltips**; Homing/Halt/Resume/Reset-Knöpfe; Job-Zeitorakel; Jogging; **Feed-Overrides** für GRBL ≥1.1.
+- **Funktionsumfang (eigene Zusammenfassung der README-Liste):** Laden von GCode mit Lauf-/Schneidvoransicht (inkl. Graustufen-/Alphablend-Darstellung); Bildimporte mit zeilenbasiertem Raster (horizontal/vertikal/diagonal), mit Vektorisierung oder 1-Bit-Dithering; SVG-Import als experimentell; Farbschemata passend zu Schutzbrillen; eigene Knöpfe (Nutzer-Makroknöpfe); GRBL-Konfiguration Import/Export; **Alarm-/Error-/Einstell-Decoder mit Klartext-Tooltips**; Homing/Halt/Resume/Reset-Knöpfe; Laufzeit-Prognose; Jogging; **Feed-Overrides** für GRBL ≥1.1.
 - **UI-Bausteine (aus der Bedienoberfläche-Seite der Website):** klassischer Kopf-/Wertlayout: Verbindungsknopf + Geräteauswahl, Jog-/Override-Schalter, GCode-/Log-Datenstrom, eigene Knöpfe. Genau diese Bausteine (Jog-Panels mit Distance/Speed, Override-Regler, Console/Log, Alarmkatalog) sind die **nächstliegende Referenz** für unser GRBL-Panel.
 - **Lernbausteine für uns:** UI-Satz für GRBL-Diodenlaser; Alarm-/Error-Mapping; Bild-Raster-Pfade (Zeilen-/Sprungstruktur); Override-Handhabung; WLAN-Variante (ESP8266) als zukünftiger Port-Ausweg.
 
 ## 3. Rayforge
 
 - **Was es ist:** moderne, frei (MIT, `github.com/barebaric/rayforge`) gestaltete Laser-Cut-Suite mit eigener Website-Positionierung als **freie Alternative zu LightBurn**; Zielmaschinen: **GRBL-artige** Geräte.
-- **Funktionsspektrum (Website, eigene Zusammenfassung):** eingebauter **2D-CAD-Zeichner** (geometrisch gezeichnete Formen), mehrschichtige Jobs, Kamera-Ausrichtung, Rotarisch-Unterstützung, Material-Rezepte (wiederverwendbare Einstellpakete), Pfad-Optimierung, 3D-Vorschau/Simulation, „KI“-Werkstück-Generator (Text → Formenvorschlag).
+- **Funktionsspektrum (Website, eigene Zusammenfassung):** eingebauter **2D-CAD-Zeichner** (geometrisch gezeichnete Formen), mehrschichtige Jobs, Kamera-Ausrichtung, Rotary-Unterstützung, Material-Rezepte (wiederverwendbare Einstellpakete), Pfad-Optimierung, 3D-Vorschau/Simulation, „KI“-Werkstück-Generator (Text → Formenvorschlag).
 - **Status:** aktiv in Entwicklung (junges, wachsendes Projekt; mehrere aktive Add-on-Repositories für Maschinenzusätze, z. B. Epilog-/Lasersaur-Ausgaben — MIT).
 - **Lernbausteine für uns:** Material-„Rezepte“ als UX-Konzept; Pfad-Optimierung/Kamera-Ausrichtung; moderne Oberflächen-Muster ohne LightBurn-Kopie. Für das Zielbild „LightBurn-ähnlich“: eher **UX-Ideenquelle** als UI-Kopie.
 
 ## 4. LaserWeb4
 
-- **Was es ist:** Browser-/Webbasiertes CAM-Programm für Laser/CNC/Plasma/Verschieber (Node + Browser; Doku-Seite laserweb.yurl.ch); Lizenz **AGPL-3.0**; laut Repository „gemeinschaftlich gebratene“ Entwicklung, Wartung weitgehend eingeschlaffen (README verweist auf alten Entwicklungsstand — keine frische Aktivität).
+- **Was es ist:** Browser-/Webbasiertes CAM-Programm für Laser/CNC/Plasma/Verschieber (Node + Browser; Doku-Seite laserweb.yurl.ch); Lizenz **AGPL-3.0**; laut Repository „von Freiwilligen getragene“ Entwicklung, Wartung weitgehend eingeschlaffen (README verweist auf alten Entwicklungsstand — keine frische Aktivität).
 - **Funktionsspektrum:** CAM von SVG/DXF zu GCode, Maschinenprofile (u. a. GRBL/Smoothie/Marlin), Arbeitsflächen-Voransicht, mehrschichtige Operations-Verwaltung.
 - **Lernbausteine für uns:** das *Operations/Job*-Datenmodell (Operations → Maschinenprofile) als Konzept; sonst wegen Ruhephase und AGPL-Charakter **kein** Übernahme-Pfad.
 
@@ -57,7 +57,7 @@
 | LaserWeb4 | AGPL-3.0 | Browser/Electron | GRBL/Smoothie/Marlin | weitgehend eingeschlaffen | nein |
 | bCNC | GPL-2.0 | Win/Mac/Linux | GRBL/GRBLHAL | aktiv (CNC-Fokus) | nein |
 
-**Wichtigste Erkenntnis:** Keine der freien Apps deckt LichtLaser 2.2's Funktionsspektrum/UX vollständig ab und **keine** kann `.lbrn`/`.lbrn2` nachweislich in beide Richtungen gleichwertig verarbeiten — unsere LightBurn-Format-Spezifikation (Track A) ist damit ein echtes Unterscheidungsmerkmal. MeerK40t ist der einzige belegbare Nachweis, dass das `.lbrn`-Format **ohne LightBurn-Code** nachgebaut werden kann (MIT, eigenständiger Parser) — genau unsere Vorgehensweise.
+**Wichtigste Erkenntnis:** Keine der freien Apps das Funktionsspektrum und die UX von LightBurn 2.2 vollständig ab und **keine** kann `.lbrn`/`.lbrn2` nachweislich in beide Richtungen gleichwertig verarbeiten — unsere LightBurn-Format-Spezifikation (Track A) ist damit ein echtes Unterscheidungsmerkmal. MeerK40t ist der einzige belegbare Nachweis, dass das `.lbrn`-Format **ohne LightBurn-Code** nachgebaut werden kann (MIT, eigenständiger Parser) — genau unsere Vorgehensweise.
 
 ## 7. Lizenz-Hinweis (für unser GPL-3.0-only-Projekt)
 

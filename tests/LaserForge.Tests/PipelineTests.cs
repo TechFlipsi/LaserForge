@@ -54,7 +54,7 @@ public class PipelineTests
         var e = new SchnittEinstellung { Typ = "Cut", MinPower = 80, MaxPower = 80, Speed = 30, NumPasses = 2 };
         var zeilen = GCodeErzeuger.Kontur(Viereck(0, 0, 10, 10), e, new GCodeOptionen());
         Assert.Equal(2, zeilen.Count(zeile => zeile.StartsWith("M4")));
-        Assert.Equal(11, zeilen.Count);
+        Assert.Equal(14, zeilen.Count); // G0 + (M4+4G1+M5)*2 + Zwischen-G0
     }
     [Fact]
     public void Raster_Bidi()

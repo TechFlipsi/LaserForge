@@ -82,13 +82,19 @@ public static class SchreiberLbrn
                 sh.Add(new XAttribute("H", Doppel(tf.Hoehe)));
                 break;
             case PfadForm ff:
-                var punkte = ff.Rohtuege.SelectMany(z => z.Punkte).ToList();
-                foreach (var pk in punkte)
-                    sh.Add(new XElement("V", new XAttribute("vx", Doppel(pk.X)), new XAttribute("vy", Doppel(pk.Y))));
-                for (int i = 1; i < punkte.Count; i++)
-                    sh.Add(new XElement("P", new XAttribute("T", "L"),
-                        new XAttribute("p0", i - 1), new XAttribute("p1", i)));
+            {
+                int kursor = 0;
+                foreach (var z in ff.Rohtuege)
+                {
+                    foreach (var pk in z.Punkte)
+                        sh.Add(new XElement("V", new XAttribute("vx", Doppel(pk.X)), new XAttribute("vy", Doppel(pk.Y))));
+                    for (int i = 1; i < z.Punkte.Count; i++)
+                        sh.Add(new XElement("P", new XAttribute("T", "L"),
+                            new XAttribute("p0", kursor + i - 1), new XAttribute("p1", kursor + i)));
+                    kursor += z.Punkte.Count;
+                }
                 break;
+            }
         }
         sh.Add(new XAttribute("CutIndex", f.SchnittIndex.ToString(E)));
         if (!string.IsNullOrEmpty(f.Name)) sh.Add(new XAttribute("Name", f.Name));

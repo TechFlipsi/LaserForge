@@ -60,7 +60,7 @@ public class FormateTests
     public void Svg_Bezier()
     {
         var zug = Assert.Single(LeserSvg.ZuegeAusD("M0 0 C10 0 20 10 30 10"));
-        Assert.Equal(24, zug.Punkte.Count);
+        Assert.Equal(25, zug.Punkte.Count); // Start + 23 Zwischenpunkte + Endpunkt
         Assert.Equal(new Punkt(30, 10), zug.Punkte[^1]);
     }
     [Fact]
