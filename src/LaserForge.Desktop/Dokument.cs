@@ -31,8 +31,11 @@ public sealed class Dokument
         (Dateipfad.Length > 0 ? System.IO.Path.GetFileName(Dateipfad) : "Unbenannt")
         + " - GRBL - LaserForge";
 
-    /// <summary>UI-Ereignis nach Zustandswechsel (Canvas/Layer/Preview aktualisieren).</summary>
+    /// <summary>Leichtes Ereignis: Geometrie/Schnitt-Werte geändert → Canvas/Preview/Menü frisch.</summary>
     public event Action? ZustandGeaendert;
+
+    /// <summary>Volles Ereignis: neues/neu geladenes Projekt (Setze/Undo/Redo) → alles inkl. Liste neu.</summary>
+    public event Action? DokumentGewechselt;
 
     // ---------- Projekte
 
@@ -151,7 +154,7 @@ public sealed class Dokument
         {
             redoStapel.Push(Klone(Projekt));
             Projekt = undoStapel.Pop();
-            ZustandGeaendert?.Invoke();
+            DokumentGewechselt?.Invoke();
         }
     }
 
@@ -162,20 +165,20 @@ public sealed class Dokument
         {
             undoStapel.Push(Klone(Projekt));
             Projekt = redoStapel.Pop();
-            ZustandGeaendert?.Invoke();
+            DokumentGewechselt?.Invoke();
         }
     }
 
     // ---------- Zustand
 
-    /// <summary>Projekt-Referenz setzen (Neu/Öffnen/Laden) + UI-Abonnenten.</summary>
+    /// <summary>Projekt-Referenz setzen (Neu/Öffnen/Laden) + volle Aufrüstung der UI.</summary>
     public void Setze(Projekt p, string dateipfad)
     {
         Projekt = p;
         Dateipfad = dateipfad;
         undoStapel.Clear();
         redoStapel.Clear();
-        ZustandGeaendert?.Invoke();
+        DokumentGewechselt?.Invoke();
     }
 
     /// <summary>Weitreichende Zustandsmeldung (Canvas/Preview/Layer frisch zeichnen).</summary>

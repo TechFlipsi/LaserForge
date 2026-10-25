@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LightBurnProject AppVersion="1.0.0" FormatVersion="0" MaterialHeight="0" MirrorX="False" MirrorY="False">
+  <CutSetting type="Cut">
+    <index Value="0" />
+    <name Value="Layer 00" />
+    <minPower Value="80" />
+    <maxPower Value="80" />
+    <speed Value="30" />
+    <priority Value="0" />
+    <numPasses Value="1" />
+  </CutSetting>
+  <CutSetting type="Cut">
+    <index Value="1" />
+    <name Value="Layer 01" />
+    <minPower Value="40" />
+    <maxPower Value="40" />
+    <speed Value="20" />
+    <priority Value="1" />
+    <doOutput Value="False" />
+  </CutSetting>
+  <Shape Type="Rect" W="60" H="40" CutIndex="0">
+    <XForm>1 0 0 1 60 60</XForm>
+  </Shape>
+  <Shape Type="Ellipse" Rx="25" Ry="25" CutIndex="1">
+    <XForm>1 0 0 1 200 240</XForm>
+  </Shape>
+  <Shape Type="Path" CutIndex="0">
+    <V vx="-15" vy="0" />
+    <V vx="15" vy="0" />
+    <P T="L" p0="0" p1="1" />
+    <XForm>1 0 0 1 300 160</XForm>
+  </Shape>
+</LightBurnProject>

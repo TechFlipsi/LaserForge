@@ -288,6 +288,9 @@ public class Arbeitsflaeche : Control
         Dok.Sichere("Layer sichtbar/versteckt");
         foreach (var f in Quelle.Formen.Where(f => f.SchnittIndex == index))
             f.Versteckt = !sichtbar;
+        // Auch die Core-Schnitt-Zeile merkt sich den Sichtbarkeitsstand.
+        var schnitt = Quelle.Schnitte.FirstOrDefault(s => s.Index == index);
+        if (schnitt is not null) schnitt.Versteckt = !sichtbar;
         Dok.Melden();
         InvalidateVisual();
     }

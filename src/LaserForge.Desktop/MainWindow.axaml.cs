@@ -55,6 +55,7 @@ public partial class MainWindow : Window
         InitializeComponent();
         tabKnopfe = new[] { TabKnopf0, TabKnopf1, TabKnopf2, TabKnopf3, TabKnopf4, TabKnopf5, TabKnopf6 };
         dokument.ZustandGeaendert += OnDokZustand;
+        dokument.DokumentGewechselt += OnDokGewechselt;
 
         Flaeche.Dok = dokument;
         Flaeche.Quelle = dokument.Projekt;
@@ -64,6 +65,7 @@ public partial class MainWindow : Window
         BaueLayerleiste();
         BaueEbenenListe();
         KonsoleAnfang();
+        PropLeisteVerdrahten();
 
         aktiverTab = Math.Clamp(StartEinstellung.Tab, 0, TabNamen.Length - 1);
         if (StartEinstellung.Maximieren)
@@ -117,8 +119,8 @@ public partial class MainWindow : Window
             };
             chip.Tapped += OnLayerChip;
             Layerleiste.Children.Add(chip);
-            MaLayerChipMarkieren(i);
         }
+        MaLayerChipMarkieren();
     }
 
     /// <summary>Layer-Chip-Klick → aktive Layer-Nummer für neue Formen.</summary>
@@ -133,13 +135,13 @@ public partial class MainWindow : Window
     }
 
     /// <summary>Aktiv-Markierung (orange Rand) über alle Layer-Chips.</summary>
-    private void MaLayerChipMarkieren(int _fuerAlt = -1)
+    private void MaLayerChipMarkieren()
     {
         for (int i = 0; i < Layerleiste.Children!.Count; i++)
         {
             if (Layerleiste.Children[i] is Border chip)
             {
-                bool aktiv = i == aktiverLayer || (aktiverLayer == i && i > 30);
+                bool aktiv = i == aktiverLayer;
                 chip.BorderThickness = new Thickness(aktiv ? 2 : 1);
                 chip.BorderBrush = new SolidColorBrush(aktiv ? Color.Parse("#FF9900") : Color.Parse("#5A5A5A"));
             }
@@ -274,10 +276,23 @@ public partial class MainWindow : Window
 
     // ================================================== Dokument-Bindung
 
-    /// <summary>Dokument-Zustand → alle Leisten/Tab-Inhalte frisch.</summary>
+    /// <summary>Leichte Dokument-Meldung → Canvas/Preview/Menüfähigkeit frisch.</summary>
     private void OnDokZustand()
     {
-        Flaeche.Quelle = dokument.Projekt;
+        Flaeche.InvalidateVisual();
+        if (aktiverTab == 6)
+        {
+            VorschauNeu();
+        }
+        MenuUndo.IsEnabled = dokument.HatUndo;
+        MenuRedo.IsEnabled = dokument.HatRedo;
+        MenuLoeschen.IsEnabled = Flaeche.Ausgewaehlt.Count > 0;
+    }
+
+    /// <summary>Dokument gewechselt (Neu/Öffnen/Undo/Redo) → komplette Aufrüstung.</summary>
+    private void OnDokGewechselt()
+    {
+        Flaeche.Quelle = dokument.Projekt;   // alte Formen-Objekte sind weg
         TitelAnzeigen();
         BaueEbenenListe();
         Flaeche.InvalidateVisual();
@@ -285,8 +300,7 @@ public partial class MainWindow : Window
         {
             VorschauNeu();
         }
-        Flaeche.AuswahlLeeren();      // Nach Neu/Laden/Undo sind alte Formen-Objekte weg
-        Flaeche.InvalidateVisual();
+        Flaeche.AuswahlLeeren();      // feuert Flaeche.Zustand → Status/Propbar
         MenuUndo.IsEnabled = dokument.HatUndo;
         MenuRedo.IsEnabled = dokument.HatRedo;
         PropLeisteBeleben();
@@ -296,7 +310,7 @@ public partial class MainWindow : Window
     private void OnFlaecheZustand()
     {
         PropLeisteBeleben();
-        dokument.Melden();   // Ebenen-Liste/Preview nachziehen (kein Rebuild-Zirkel: nur Sicht-Updates)
+        dokument.Melden();   // leichtgewichtig (kein Listen-Rebuild, kein Auswahl-Reset)
         MenuLoeschen.IsEnabled = Flaeche.Ausgewaehlt.Count > 0;
     }
 
@@ -368,7 +382,6 @@ public partial class MainWindow : Window
             KonsoleHin("Fehler beim Öffnen: " + fehler.Message, Brushes.Salmon);
             StatusMeldung.Text = "Öffnen fehlgeschlagen";
         }
-        dokument.Melden();
     }
 
     /// <summary>Speichern über den Core-Schreiber; ohne Pfad → Speichern-Dialog (.lbrn).</summary>
@@ -692,5 +705,131 @@ public partial class MainWindow : Window
         return (minX, minY, maxX, maxY);
     }
 
-    private void OnMausMMLeer(double x, double y) { }   // Rückseite für Designer — nicht genutzt
+    /// <summary>Alle Eigenschaften-Felder verdrahten (Enter-Commit + Fokuswechsel-Commit).</summary>
+    private void PropLeisteVerdrahten()
+    {
+        foreach (var feld in new[] { FeldXPos, FeldYPos, FeldBreite, FeldHoehe, FeldDrehen })
+        {
+            feld.KeyDown += OnPropfeldTaste;
+            feld.LostFocus += OnPropfeldVerlassen;
+        }
+    }
+
+    private void OnPropfeldTaste(object? sender, KeyEventArgs e)
+    {
+        if (e.Key == Key.Enter)
+        {
+            FeldUebernehmen(sender);
+            e.Handled = true;
+        }
+    }
+
+    private void OnPropfeldVerlassen(object? sender, RoutedEventArgs e) => FeldUebernehmen(sender);
+
+    /// <summary>Eigenschaften-Feld in die Auswahl schreiben (live auf die Formen-XForm).</summary>
+    private void FeldUebernehmen(object? sender)
+    {
+        if (Flaeche.Ausgewaehlt.Count == 0)
+        {
+            return;
+        }
+        var box = AuswahlUnion(0.0);
+        switch (sender)
+        {
+            case TextBox t when ReferenceEquals(t, FeldXPos):
+            {
+                double nx = Zahle(t.Text);
+                if (!double.IsNaN(nx) && Math.Abs(nx - box.minX) > 1e-9)
+                {
+                    dokument.Sichere("X-Position setzen");
+                    VerschiebeAuswahl(0, nx - box.minX);
+                }
+                break;
+            }
+            case TextBox t when ReferenceEquals(t, FeldYPos):
+            {
+                double ny = Zahle(t.Text);
+                if (!double.IsNaN(ny) && Math.Abs(ny - box.minY) > 1e-9)
+                {
+                    dokument.Sichere("Y-Position setzen");
+                    VerschiebeAuswahl(ny - box.minY, 0);
+                }
+                break;
+            }
+            case TextBox t when ReferenceEquals(t, FeldBreite):
+            {
+                double nb = Zahle(t.Text), bw = box.maxX - box.minX;
+                if (!double.IsNaN(nb) && nb > 0.05 && bw > 0.05 && Math.Abs(nb - bw) > 1e-9)
+                {
+                    dokument.Sichere("Breite setzen");
+                    SkaliereAuswahl(nb / bw, 1.0, box.minX, box.minY);
+                }
+                break;
+            }
+            case TextBox t when ReferenceEquals(t, FeldHoehe):
+            {
+                double nh = Zahle(t.Text), hh = box.maxY - box.minY;
+                if (!double.IsNaN(nh) && nh > 0.05 && hh > 0.05 && Math.Abs(nh - hh) > 1e-9)
+                {
+                    dokument.Sichere("Höhe setzen");
+                    SkaliereAuswahl(1.0, nh / hh, box.minX, box.minY);
+                }
+                break;
+            }
+            case TextBox t when ReferenceEquals(t, FeldDrehen):
+            {
+                double wd = Zahle(t.Text);
+                if (!double.IsNaN(wd) && Math.Abs(wd - drehWinkel) > 1e-9)
+                {
+                    dokument.Sichere("Drehen setzen");
+                    DrehAuswahl(wd - drehWinkel);
+                    drehWinkel = wd;
+                }
+                break;
+            }
+        }
+        PropLeisteBeleben();
+    }
+
+    /// <summary>Alle Auswahl-Formen um (dx, dy) verschieben (Welt-Translation vor die XForm).</summary>
+    private void VerschiebeAuswahl(double dx, double dy)
+    {
+        var schub = Transformationsmatrix.Verschieben(dx, dy);
+        foreach (var f in Flaeche.Ausgewaehlt)
+        {
+            f.XForm = schub * f.XForm;
+        }
+        Flaeche.InvalidateVisual();
+        dokument.Melden();
+    }
+
+    /// <summary>Auswahl am Ankerpunkt (X/Y separat) skalieren.</summary>
+    private void SkaliereAuswahl(double sx, double sy, double ax, double ay)
+    {
+        var schub = Transformationsmatrix.Verschieben(ax, ay)
+                    * new Transformationsmatrix(sx, 0, 0, sy, 0, 0)
+                    * Transformationsmatrix.Verschieben(-ax, -ay);
+        foreach (var f in Flaeche.Ausgewaehlt)
+        {
+            f.XForm = schub * f.XForm;
+        }
+        Flaeche.InvalidateVisual();
+        dokument.Melden();
+    }
+
+    /// <summary>Auswahl um den Auswahl-Mittelpunkt drehen (+CCW, mm-Koordinaten Y nach oben).</summary>
+    private void DrehAuswahl(double gradZusatz)
+    {
+        var box = AuswahlUnion(0.0);
+        double cx = (box.minX + box.maxX) / 2, cy = (box.minY + box.maxY) / 2;
+        var schub = Transformationsmatrix.Verschieben(cx, cy)
+                    * Transformationsmatrix.DrehenRadiant(gradZusatz * Math.PI / 180.0)
+                    * Transformationsmatrix.Verschieben(-cx, -cy);
+        foreach (var f in Flaeche.Ausgewaehlt)
+        {
+            f.XForm = schub * f.XForm;
+        }
+        Flaeche.InvalidateVisual();
+        dokument.Melden();
+    }
 }

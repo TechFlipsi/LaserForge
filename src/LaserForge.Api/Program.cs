@@ -19,8 +19,11 @@ Console.WriteLine($"LaserForge-API lauscht auf http://127.0.0.1:{port}/ — Prot
 while (true)
 {
     TcpClient client = await listener.AcceptTcpClientAsync();
-    try { Behandeln(client); }
-    catch (Exception ex) { Console.WriteLine($"Verbindungsfehler: {ex.Message}"); }
+    _ = System.Threading.Tasks.Task.Run(() =>
+    {
+        try { Behandeln(client); }
+        catch (Exception ex) { Console.WriteLine($"Verbindungsfehler: {ex.Message}"); }
+    });
 }
 void Behandeln(TcpClient client)
 {
@@ -50,6 +53,24 @@ void Behandeln(TcpClient client)
         var trennIx = alles.IndexOf("\r\n\r\n");
         var koerperText = trennIx >= 0 ? alles[(trennIx + 4)..] : "";
         var (code, grund, koerper) = Router.Behandeln(methode, pfad, bearer, loopback, zustand, koerperText);
+        if (koerper == "SSE-STREAM")
+        {
+            // Rohen SSE-Strom schreiben (Protokoll: text/event-stream)
+            var sseKopf = Encoding.UTF8.GetBytes(
+                "HTTP/1.1 200 OK\r\nContent-Type: text/event-stream; charset=utf-8\r\nConnection: close\r\n\r\n: verbunden\n\n");
+            strom.Write(sseKopf, 0, sseKopf.Length);
+            strom.Flush();
+            for (int i = 0; i < 3; i++)
+            {
+                Thread.Sleep(2000);
+                var stellungJson = System.Text.Json.JsonSerializer.Serialize(
+                    new { machine = new { x = 0, y = 0, z = 0 } });
+                var ereignis = Encoding.UTF8.GetBytes($"event: position\ndata: {stellungJson}\n\n");
+                strom.Write(ereignis, 0, ereignis.Length);
+                strom.Flush();
+            }
+            return;
+        }
         if (methode == "POST") zustand.Speichern(zustandDatei);
         var body = Encoding.UTF8.GetBytes(koerper);
         var kopf = Encoding.UTF8.GetBytes(

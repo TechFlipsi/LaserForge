@@ -124,6 +124,25 @@ public static class Router
         if (methode == "POST" && pfadQuergelesen == "/api/file/upload")
             return DateiUpload(zustand, koerperText);
 
+        // Dinamischer Arm: /api/cuts/{index}
+        var cutsMuster = "/api/cuts/";
+        if (pfadQuergelesen.StartsWith(cutsMuster, StringComparison.Ordinal) &&
+            int.TryParse(pfadQuergelesen[cutsMuster.Length..], out var cutIx))
+        {
+            var s = zustand.Projekt.Schnitte.FirstOrDefault(x => x.Index == cutIx);
+            if (s is null)
+                return (404, "Nicht gefunden", JsonObj(("error", "Schnittzeile " + cutIx + " existiert nicht.")).ToJsonString());
+            return (200, "OK", SchnittObj(s).ToJsonString());
+        }
+
+        // SSE-Events (Protokoll-Paritaet; begrenzt dokumentierter Modus: Anredegung + 3 Positions-
+        // Ereignisse in 2s-Abstand, dann Verbindung schließen — Live-Monitore kommen mit dem GUI-Integrations-Zyklus)
+        if (pfadQuergelesen == "/api/events")
+        {
+            var stuecke = new List<string> { ": verbunden\n\n" };
+            return (200, "OK", "SSE-STREAM");  // Sonderfall: Program schreibt rohen SSE-Strom
+        }
+
         return pfadQuergelesen switch
         {
             "/api/status" => Gruen(MaschineObj(zustand)),
@@ -133,6 +152,10 @@ public static class Router
                 ("workpiece", PunktObj(0, 0, 0)))),
             "/api/units" => Gruen(JsonObj(("distance_units", "mm"), ("units", "mm/min"))),
             "/api/layers" => Gruen(SchichtenObj(zustand)),
+            "/api/jog/settings" => Gruen(JsonObj(
+                ("xy", JsonObj(("distance", 10.0), ("speed", 6000.0))),
+                ("z", JsonObj(("distance", 10.0), ("speed", 600.0))))),
+            "/api/goto/saved" => Gruen(JsonObj(("positions", NeueListe()))),
             "/api/cuts" => Gruen(SchnitteeinstellungenObj(zustand)),
             "/api/project" => Gruen(ProjektObj(zustand)),
             _ => (404, "Nicht gefunden", JsonObj(("error", "Endpunkt in dieser M7-Basis noch nicht umgesetzt.")).ToJsonString()),
