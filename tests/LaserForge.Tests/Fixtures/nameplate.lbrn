@@ -1,0 +1,66 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<LightBurnProject AppVersion="1.7.05" FormatVersion="0" MaterialHeight="0.0" MirrorX="False" MirrorY="False">
+  <VariableText>
+    <Start Value="0" />
+    <End Value="999" />
+    <Current Value="0" />
+    <Increment Value="1" />
+    <AutoAdvance Value="0" />
+  </VariableText>
+  <UIPrefs>
+    <Optimize_ByLayer Value="1" />
+    <Optimize_ByGroup Value="-1" />
+    <Optimize_ByPriority Value="0" />
+    <Optimize_WhichDirection Value="0" />
+    <Optimize_InnerToOuter Value="1" />
+    <Optimize_ByDirection Value="0" />
+    <Optimize_ReduceTravel Value="1" />
+    <Optimize_HideBacklash Value="0" />
+    <Optimize_ReduceDirChanges Value="0" />
+    <Optimize_ChooseCorners Value="0" />
+    <Optimize_AllowReverse Value="1" />
+    <Optimize_RemoveOverlaps Value="0" />
+    <Optimize_OptimalEntryPoint Value="1" />
+  </UIPrefs>
+  <CutSetting type="Scan">
+    <index Value="0" />
+    <name Value="Gravur" />
+    <minPower Value="40" />
+    <maxPower Value="40" />
+    <minPower2 Value="40" />
+    <maxPower2 Value="40" />
+    <speed Value="300" />
+    <priority Value="0" />
+    <runBlower Value="True" />
+    <zOffset Value="0.0" />
+    <numPasses Value="1" />
+    <zPerPass Value="0.0" />
+    <enableLaser1 Value="True" />
+    <enableLaser2 Value="False" />
+    <lineSpacing Value="0.1" />
+    <scanAngle Value="0.0" />
+    <hatchEdge Value="0.0" />
+  </CutSetting>
+  <CutSetting type="Cut">
+    <index Value="1" />
+    <name Value="Schnitt" />
+    <minPower Value="80" />
+    <maxPower Value="80" />
+    <minPower2 Value="80" />
+    <maxPower2 Value="80" />
+    <speed Value="5" />
+    <priority Value="0" />
+    <runBlower Value="True" />
+    <zOffset Value="0.0" />
+    <numPasses Value="1" />
+    <zPerPass Value="0.0" />
+    <enableLaser1 Value="True" />
+    <enableLaser2 Value="False" />
+  </CutSetting>
+  <Shape Type="Text" CutIndex="1" PowerScale="100.0" Font="Arial,-1,100,5,50,0,0,0,0,0" Str="Fabian Kirchweger" H="15" LS="0.0" LnS="0.0" Ah="1" Av="1" Weld="1" HasBackupPath="0">
+    <XForm>1 0 0 1 60.0 25.0</XForm>
+  </Shape>
+  <Shape Type="Rect" CutIndex="0" PowerScale="100.0" W="114" H="44">
+    <XForm>1 0 0 1 60.0 25.0</XForm>
+  </Shape>
+</LightBurnProject>

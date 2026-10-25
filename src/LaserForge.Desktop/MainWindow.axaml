@@ -1,0 +1,12 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="LaserForge.Desktop.MainWindow"
+        Title="LaserForge"
+        Width="1600" Height="900"
+        Background="#141414">
+    <Grid>
+        <TextBlock Text="LaserForge M1-Skelett laeuft. GUI-Ausbau in M5 nach dem Live-Benchmark als Messlatte."
+                   Foreground="#F0F0F0" HorizontalAlignment="Center" VerticalAlignment="Center"
+                   FontSize="20" TextWrapping="Wrap" Margin="40,0"/>
+    </Grid>
+</Window>

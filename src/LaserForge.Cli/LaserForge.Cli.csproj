@@ -1,0 +1,11 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <RootNamespace>LaserForge.Cli</RootNamespace>
+    <AssemblyName>laserforge-cli</AssemblyName>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\LaserForge.Core\LaserForge.Core.csproj" />
+    <ProjectReference Include="..\LaserForge.Devices\LaserForge.Devices.csproj" />
+  </ItemGroup>
+</Project>

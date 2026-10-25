@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <RootNamespace>LaserForge.Desktop</RootNamespace>
+    <BuiltInComInteropSupport>true</BuiltInComInteropSupport>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Avalonia" Version="12.*" />
+    <PackageReference Include="Avalonia.Desktop" Version="12.*" />
+    <PackageReference Include="Avalonia.Themes.Fluent" Version="12.*" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\LaserForge.Core\LaserForge.Core.csproj" />
+  </ItemGroup>
+</Project>
