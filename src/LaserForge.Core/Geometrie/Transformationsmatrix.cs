@@ -1,3 +1,5 @@
+using System.Globalization;
+
 namespace LaserForge.Core.Geometrie;
 /// <summary>
 /// Affine Matrix in .lbrn-XForm-Zeilenform: a b c d e f
@@ -20,5 +22,6 @@ public readonly record struct Transformationsmatrix(double A, double B, double C
         new(a.A * b.A + a.C * b.B, a.B * b.A + a.D * b.B,
             a.A * b.C + a.C * b.D, a.B * b.C + a.D * b.D,
             a.A * b.E + a.C * b.F + a.E, a.B * b.E + a.D * b.F + a.F);
-    public string ZuXFormText() => $"{A:G17} {B:G17} {C:G17} {D:G17} {E:G17} {F:G17}";
+    public string ZuXFormText() => string.Format(CultureInfo.InvariantCulture,
+        "{0:G17} {1:G17} {2:G17} {3:G17} {4:G17} {5:G17}", A, B, C, D, E, F);
 }

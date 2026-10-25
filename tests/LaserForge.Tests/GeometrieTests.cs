@@ -1,4 +1,5 @@
 using LaserForge.Core.Geometrie;
+using LaserForge.Core.Formate;
 using Xunit;
 namespace LaserForge.Tests;
 public class GeometrieTests
@@ -7,7 +8,7 @@ public class GeometrieTests
         Assert.Equal(new Punkt(3, 4), Transformationsmatrix.Identitaet.Anwenden(new Punkt(3, 4)));
     [Fact] public void Verschieben_Plus_Skalieren()
     {
-        var m = Transformationsmatrix.Verschieben(1, 2) * Transformationsmatrix.Skalieren(2);
+        var m = Transformationsmatrix.Skalieren(2) * Transformationsmatrix.Verschieben(1, 2); // (A*B)(p) = A(B(p)): erst Verschieben, dann Skalieren
         Assert.Equal(new Punkt(4, 6), m.Anwenden(new Punkt(1, 1)));
     }
     [Fact] public void Drehen_90_Grad()
@@ -21,6 +22,6 @@ public class GeometrieTests
     [Fact] public void XForm_Text_Roundtrip()
     {
         var m = new Transformationsmatrix(2, 0, 0, 2, 10.5, 20.25);
-        Assert.Equal(m, Formate.LeserLbrn.LesereMatrix(m.ZuXFormText()));
+        Assert.Equal(m, LeserLbrn.LesereMatrix(m.ZuXFormText()));
     }
 }

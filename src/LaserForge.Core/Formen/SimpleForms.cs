@@ -6,23 +6,22 @@ public sealed class RechteckForm : Form
     public double H { get; set; }
     public double Eckradius { get; set; }
     public override string Rohtyp() => "Rect";
-    public override List<Zug> ZuZuege()
+    protected override List<Zug> Rohezuege()
     {
+        double hw = W / 2, hh = H / 2;
         if (Eckradius <= 0)
         {
-            double hw = W/2, hh = H/2;
-            return new() { new Zug(new[] { new Punkt(-hw,-hh), new Punkt(-hw,hh), new Punkt(hw,hh), new Punkt(hw,-hh) }, true) };
+            return new() { new Zug(new[] { new Punkt(-hw,-hh), new Punkt(-hw,hh), new Punkt(hw,hh), new Punkt(hw,-hh), new Punkt(-hw,-hh) }, true) };
         }
-        // Abgerundete Ecken: Kreisquart je 8 Segmente
+        // Abgerundete Ecken: 8-Segmente-Bogen je Quart
         var punkte = new List<Punkt>();
-        double hw = W/2, hh = H/2, r = Math.Min(Eckradius, Math.Min(W, H)/2);
-        // Ecke unten links -> gegen den Uhrzeigersinn
+        double r = Math.Min(Eckradius, Math.Min(W, H) / 2);
         punkte.AddRange(Eckbogen(hw - r, hh - r, r, 0, 90, 8));
-        punkte.AddRange(Eckbogen(hw - r, hh + r, r, 90, 180, 8)?? new List<Punkt>());
+        punkte.AddRange(Eckbogen(hw - r, hh + r, r, 90, 180, 8));
         punkte.AddRange(Eckbogen(-hw + r, hh + r, r, 180, 270, 8));
         punkte.AddRange(Eckbogen(-hw + r, hh - r, r, 270, 360, 8));
         punkte.Add(punkte[0]);
-        return new List<Zug>{ new Zug(punkte, true) };
+        return new List<Zug> { new Zug(punkte, true) };
     }
     private static IEnumerable<Punkt> Eckbogen(double cx, double cy, double r, double a0, double a1, int n)
     {
@@ -40,7 +39,7 @@ public sealed class EllipseForm : Form
     public double Rx { get; set; }
     public double Ry { get; set; }
     public override string Rohtyp() => "Ellipse";
-    public override List<Zug> ZuZuege()
+    protected override List<Zug> Rohezuege()
     {
         const int n = 64;
         var punkte = new List<Punkt>();
@@ -59,7 +58,7 @@ public sealed class PolygonForm : Form
     public double Ry { get; set; }
     public int Seiten { get; set; } = 6;
     public override string Rohtyp() => "Polygon";
-    public override List<Zug> ZuZuege()
+    protected override List<Zug> Rohezuege()
     {
         var punkte = new List<Punkt>();
         for (int i = 0; i < Seiten; i++)
@@ -75,7 +74,7 @@ public sealed class PfadForm : Form
 {
     public List<Zug> Rohtuege { get; set; } = new();
     public override string Rohtyp() => "Path";
-    public override List<Zug> ZuZuege() => Rohtuege.Select(z => new Zug(z.Punkte.Select(XForm.Anwenden), z.Geschlossen)).ToList();
+    protected override List<Zug> Rohezuege() => Rohtuege.Select(z => new Zug(z.Punkte.Select(XForm.Anwenden), z.Geschlossen)).ToList();
 }
 /// <summary>Text-Form: Umriss wird spaeter ueber Systemfont-Raster erzeugt (M3) — M1 liefert leere Zuege.</summary>
 public sealed class TextForm : Form
@@ -84,13 +83,12 @@ public sealed class TextForm : Form
     public string Text { get; set; } = "";
     public double Hoehe { get; set; } = 10;
     public override string Rohtyp() => "Text";
-    public override List<Zug> ZuZuege() => new(); // M3: Font-Zerlegung
+    protected override List<Zug> Rohezuege() => new(); // M3: Font-Zerlegung
 }
 public sealed class GruppeForm : Form
 {
     public List<Form> Kinder { get; set; } = new();
     public override string Rohtyp() => "Group";
-    public override List<Zug> ZuZuege() =>
-        Kinder.SelectMany(k => k.ZuZuege().Select(z =>
-            new Zug(z.Punkte.Select(p => XForm.Anwenden(p)), z.Geschlossen))).ToList();
+    // Kinder tragen ihre eigene XForm (k.ZuZuege()); die Gruppen-XForm wendet die Basis einmal an.
+    protected override List<Zug> Rohezuege() => Kinder.SelectMany(k => k.ZuZuege()).ToList();
 }

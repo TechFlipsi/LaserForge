@@ -2,7 +2,10 @@
   <PropertyGroup>
     <RootNamespace>LaserForge.Devices</RootNamespace>
   </PropertyGroup>
-  <ItemGroup>
+    <ItemGroup>
     <PackageReference Include="System.IO.Ports" Version="10.*" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\LaserForge.Core\LaserForge.Core.csproj" />
   </ItemGroup>
 </Project>

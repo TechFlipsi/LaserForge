@@ -62,8 +62,8 @@ public class PipelineTests
         var e = new SchnittEinstellung { Typ = "Scan", MinPower = 40, MaxPower = 40, Speed = 200, LineSpacing = 1 };
         var zeilen = GCodeErzeuger.Raster(new[] { Viereck(0, 0, 10, 10) }, e, new GCodeOptionen());
         Assert.Equal(44, zeilen.Count);
-        Assert.Contains("G0 X0 Y1", zeilen);
-        Assert.Contains("G0 X10 Y1", zeilen);
+        Assert.Contains("G0 X0 Y2", zeilen);   // Zeile 2 (Y=2) links beginnend (bidi wechselt)
+        Assert.Contains("G0 X10 Y1", zeilen);  // Zeile 1 (Y=1) rechts beginnend
         Assert.Contains("M4 S400", zeilen);
     }
     [Fact]

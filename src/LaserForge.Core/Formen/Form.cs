@@ -10,8 +10,11 @@ public abstract class Form
     public int SchnittIndex { get; set; }
     public bool Versteckt { get; set; }
     public string? Name { get; set; }
-    /// <summary>Eigentliche Formzuege in Weltkoordinaten (XForm inklusive).</summary>
-    public abstract List<Zug> ZuZuege();
+    /// <summary>Rohzuege der Form in LOKALEN Koordinaten (ohne XForm).</summary>
+    protected abstract List<Zug> Rohezuege();
+    /// <summary>Formzuege in Weltkoordinaten = Rohezuege mit XForm angewendet.</summary>
+    public List<Zug> ZuZuege() =>
+        Rohezuege().Select(z => new Zug(z.Punkte.Select(XForm.Anwenden).ToList(), z.Geschlossen)).ToList();
     /// <summary>Rohtypname im .lbrn-Format (Kompatibilidadeits-Kontext: Format-Tagnamen).</summary>
     public abstract string Rohtyp();
 }

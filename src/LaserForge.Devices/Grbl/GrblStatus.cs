@@ -3,11 +3,11 @@ namespace LaserForge.Devices.Grbl;
 /// <summary>Aufbereiteter GRBL-Status (&lt;Idle|MPos:..|WPos:..|FS:..&gt;) mit X/Y/Z-Zugriff.</summary>
 public sealed class GrblStatus
 {
-    public string Zustand { get; init; } = "Unbekannt";
-    public double[] Maschine { get; init; } = new double[3];
-    public double[] Werk { get; init; } = new double[3];
-    public double Feed { get; init; }
-    public double Feedueberschreibung { get; init; }
+    public string Zustand { get; set; } = "Unbekannt";
+    public double[] Maschine { get; set; } = new double[3];
+    public double[] Werk { get; set; } = new double[3];
+    public double Feed { get; set; }
+    public double Feedueberschreibung { get; set; }
     public double MaschineX => Maschine[0];
     public double MaschineY => Maschine[1];
     public double MaschineZ => Maschine[2];
