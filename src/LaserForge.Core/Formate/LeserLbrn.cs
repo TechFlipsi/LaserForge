@@ -136,6 +136,9 @@ public static class LeserLbrn
                     Hoehe = ZahlD(sh.GetString("H") ?? "10"),
                 };
                 break;
+            case "Image":
+                f = new BildForm(); // Bild-Daten des .lbrn werden in M3 eingebettet gelesen
+                break;
             case "Group":
             {
                 var g = new GruppeForm();

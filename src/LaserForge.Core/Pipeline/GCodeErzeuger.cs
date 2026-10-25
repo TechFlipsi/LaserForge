@@ -43,6 +43,11 @@ public static class GCodeErzeuger
             var e = projekt.Schnitte.FirstOrDefault(s => s.Index == form.SchnittIndex)
                     ?? new SchnittEinstellung { Index = form.SchnittIndex };
             if (!e.Aktiviert) continue;
+            if (form is LaserForge.Core.Formen.BildForm bild)
+            {
+                zeilen.AddRange(BildRaster(bild, e, o));
+                continue;
+            }
             var zuege = Optimierer.Ordne(form.ZuZuege());
             if (zuege.Count == 0) continue;
             if (e.Typ is "Scan" or "Fill")
@@ -149,5 +154,41 @@ public static class GCodeErzeuger
         };
         return zeilen;
     }
+    /// <summary>
+    /// Bild-Scan-Gravur: dunkle Pixel (unter Schwelle) = Laser-Segmente, S je Bild einmal (Spec Abschnitt 6),
+    /// Zeilenabstand = max(PixelMM, lineSpacing), bidi-Alternation, XForm angewendet.
+    /// </summary>
+    public static List<string> BildRaster(LaserForge.Core.Formen.BildForm bild, SchnittEinstellung e, GCodeOptionen o)
+    {
+        var zeilen = new List<string>();
+        if (bild.BreitePix <= 0 || bild.HoehePix <= 0 || bild.Grauwerte.Length == 0) return zeilen;
+        double abstand = Math.Max(bild.PixelMM, e.LineSpacing);
+        var f = TextF(e.Speed * 60.0);
+        var xf = bild.XForm;
+        bool erste = true;
+        void Segment(double startXmm, double endXmm, double my)
+        {
+            if (endXmm - startXmm < 1e-9) return;
+            var a = xf.Anwenden(new Punkt(startXmm, my));
+            var b = xf.Anwenden(new Punkt(endXmm, my));
+            zeilen.Add($"G0 X{Zahl(a.X)} Y{Zahl(a.Y)}");
+            zeilen.Add($"G1 F{f} X{Zahl(b.X)} Y{Zahl(b.Y)}");
+        }
+        for (double my = 0; my < bild.HoehePix * bild.PixelMM - 1e-9; my += abstand)
+        {
+            if (erste) { zeilen.Add($"M4 S{TextS(SMacht(e))}"); erste = false; }
+            int pixZeile = Math.Clamp((int)Math.Round(my / bild.PixelMM), 0, bild.HoehePix - 1);
+            double? startX = null;
+            for (int px = 0; px < bild.BreitePix; px++)
+            {
+                bool dunkel = bild.PixelDunkel(px, pixZeile);
+                if (dunkel && startX is null) startX = px * bild.PixelMM;
+                else if (!dunkel && startX is not null) { Segment(startX.Value, px * bild.PixelMM, my); startX = null; }
+            }
+            if (startX is not null) Segment(startX.Value, bild.BreitePix * bild.PixelMM, my);
+        }
+        return zeilen;
+    }
+
     private static double SMacht(SchnittEinstellung e) => Math.Clamp(e.MaxPower, 0, 100) / 100.0 * 1000;
 }
