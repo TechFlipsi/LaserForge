@@ -9,7 +9,7 @@ set -u
 
 wurzel="$(cd "$(dirname "$0")/../../" && pwd)"     # skript liegt in tools/qa -> wurzel = /root/laserforge
 ssh_cmd="ssh -o BatchMode=yes -o ConnectTimeout=15 stand-pc"
-qa_proc="LaserForge.QA"
+qa_proc="LaserForge.Desktop"
 fern_ps="powershell -NoProfile -ExecutionPolicy Bypass -File"
 fern_qa="C:\\Users\\Fabia\\LaserForge\\tools\\qa"
 fern_log="C:\\Users\\Fabia\\LaserForge\\qa"
