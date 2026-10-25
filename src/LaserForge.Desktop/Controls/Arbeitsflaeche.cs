@@ -37,7 +37,6 @@ public class Arbeitsflaeche : Control
         double w = Math.Max(Bounds.Width, 1);
         double h = Math.Max(Bounds.Height, 1);
         const double lineal = 22.0;   // Lineal-Band oben/links (Pixel)
-        const double rand = 5.0;      // sichtbarer Rand um den Arbeitsbereich (mm)
 
         // Maßstab: 400-mm-Bereich muss in Breite wie Höhe passen (je minus Rand).
         double px = Math.Min((w - lineal - 10.0) / 400.0, (h - lineal - 10.0) / 400.0);

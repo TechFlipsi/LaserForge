@@ -37,7 +37,14 @@ public static class GCodeErzeuger
             "M4",  // Lasermodus dynamisch
             "S0",  // Leistung 0 als Startzustand
         };
-        foreach (var form in projekt.Formen)
+        // By-Layer-Reihenfolge (Optimize_ByLayer/ByPriority): Formen nach Layer/Prioritaet ordnen
+        var formenGeordnet = projekt.Formen
+            .Select(f => (form: f, schnitt: projekt.Schnitte.FirstOrDefault(s => s.Index == f.SchnittIndex)))
+            .OrderBy(t => t.schnitt?.Index ?? int.MaxValue)
+            .ThenBy(t => t.schnitt?.Prioritaet ?? 0)
+            .Select(t => t.form)
+            .ToList();
+        foreach (var form in formenGeordnet)
         {
             if (form.Versteckt) continue;
             var e = projekt.Schnitte.FirstOrDefault(s => s.Index == form.SchnittIndex)
@@ -48,7 +55,7 @@ public static class GCodeErzeuger
                 zeilen.AddRange(BildRaster(bild, e, o));
                 continue;
             }
-            var zuege = Optimierer.Ordne(form.ZuZuege());
+            var zuege = Optimierer.Ordne(Vereinfachen(form.ZuZuege()));
             if (zuege.Count == 0) continue;
             if (e.Typ is "Scan" or "Fill")
                 zeilen.AddRange(Raster(zuege, e, o));
@@ -188,6 +195,32 @@ public static class GCodeErzeuger
             if (startX is not null) Segment(startX.Value, bild.BreitePix * bild.PixelMM, my);
         }
         return zeilen;
+    }
+
+    /// <summary>Pfad-Vereinfachung: kollineare Zwischenpunkte entfernen (deterministisch); <1e-4-Segmente ausgelassen.</summary>
+    public static List<Zug> Vereinfachen(IEnumerable<Zug> zuege, double toleranz = 1e-4)
+    {
+        var erg = new List<Zug>();
+        foreach (var z in zuege)
+        {
+            var p = z.Punkte;
+            if (p.Count <= 3 - (z.Geschlossen ? 1 : 0) || p.Count < 2) { erg.Add(z); continue; }
+            var neu = new List<Punkt> { p[0] };
+            for (int i = 1; i < p.Count - 1; i++)
+            {
+                var a = neu[^1]; var b = p[i]; var c = p[i + 1];
+                // Punkt b liegt praktisch auf a->c? Kreuzprodukt-Abstand
+                double ux = c.X - a.X, uy = c.Y - a.Y;
+                double laenge = Math.Sqrt(ux * ux + uy * uy);
+                if (laenge < toleranz)
+                { continue; }            // zu kurzes Segment: ueberspringen
+                double abstand = Math.Abs(uy * (b.X - a.X) - ux * (b.Y - a.Y)) / laenge;
+                if (abstand > toleranz) neu.Add(b);
+            }
+            neu.Add(p[^1]);
+            erg.Add(new Zug(neu, z.Geschlossen));
+        }
+        return erg;
     }
 
     private static double SMacht(SchnittEinstellung e) => Math.Clamp(e.MaxPower, 0, 100) / 100.0 * 1000;
