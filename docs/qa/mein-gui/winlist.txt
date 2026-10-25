@@ -1,3 +1,0 @@
-fenster 1: hwnd=8782924 titel='Unbenannt - GRBL - LaserForge' sichtbar=True minimiert=False groesse=1602x932
-gespeichert: C:\Users\Fabia\.forge-qa\out\LaserForge.Desktop_1_8782924.png printwindow=True
-desktop_gespeichert: C:\Users\Fabia\.forge-qa\out\desktop.png (1920x1080)

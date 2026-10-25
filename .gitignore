@@ -7,3 +7,8 @@ out/
 TestResults/
 *.png.tmp
 .forge-qa/
+docs/qa/benchmark/
+docs/qa/mein-gui/
+qa/
+baue.log
+teste.log
