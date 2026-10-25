@@ -1,3 +1,4 @@
+using System.Text.Json;
 using System.Text.Json.Nodes;
 using LaserForge.Core.Formate;
 using LaserForge.Core.Pipeline;
@@ -8,6 +9,8 @@ namespace LaserForge.Cli;
 /// MCP-Server-Modus (stdio JSON-RPC 2.0) — alles-ist-ein-Befehl-Prinzip.
 /// Werkzeuge: app_info · maschinen_status(port, baud) [nur Auslesung] · projekt_konvertieren(input).
 /// Notifications bleiben stumm; alle Beschreibungen auf Deutsch.
+/// Aufbau-Regel: JsonNode-Objekte werden Schritt für Schritt gesetzt
+/// (Objekt-Initialisierer direkt nach Methodenaufrufen sind in C# unzulässig).
 /// </summary>
 public static class McpServer
 {
@@ -30,7 +33,7 @@ public static class McpServer
             }
             if (anfrage is null) continue;
 
-            var methode = anfrage["method"] as string ?? "";
+            var methode = (string?)anfrage["method"] ?? "";
             if (methode.Contains("notifications", StringComparison.OrdinalIgnoreCase) ||
                 methode.CompareTo("notification") == 0)
                 continue;  // Notifications sind stumm.
@@ -41,38 +44,20 @@ public static class McpServer
                 switch (methode)
                 {
                     case "initialize":
-                        Ausgabe(kennung, Neu()
-                        {
-                            ["protocolVersion"] = "2024-11-05",
-                            ["capabilities"] = Neu() { ["tools"] = Neu() { ["listChanged"] = false } },
-                            ["serverInfo"] = Neu() { ["name"] = "laserforge", ["version"] = "0.1.0" },
-                        });
+                        Ausgabe(kennung, InitializeAntwort());
                         break;
 
                     case "tools/list":
-                        var werkzeuge = new JsonArray
-                        {
-                            Werkzeug("app_info", "Infos zu LaserForge (Version, Formate, Projektstand)."),
-                            Werkzeug("maschinen_status",
-                                "GRBL-Maschinenstatus pruefen (Port + Baud); nur Auslesung, keine Veraenderungen.",
-                                ("port", "string", "COM-Port"), ("baud", "number", "Baudrate, Standard 115200")),
-                            Werkzeug("projekt_konvertieren",
-                                "Erzeugt GCode (GRBL-Flavor) aus einer .lbrn/.lbrn2/.svg-Datei.",
-                                ("input", "string", "Dateipfad zum Projekt (.lbrn/.lbrn2/.svg)")),
-                        };
-                        Ausgabe(kennung, Neu() { ["tools"] = werkzeuge });
+                        Ausgabe(kennung, WerkzeuglisteAntwort());
                         break;
 
                     case "tools/call":
                     {
                         var parameter = anfrage["params"] as JsonObject;
-                        var name = parameter?["name"] as string ?? "";
+                        var name = (string?)parameter?["name"] ?? "";
                         var aufruf = parameter?["arguments"] as JsonObject;
                         var text = WerkzeugAufruf(name, aufruf);
-                        Ausgabe(kennung, Neu()
-                        {
-                            ["content"] = new JsonArray { Neu() { ["type"] = "text", ["text"] = text } },
-                        });
+                        Ausgabe(kennung, TextInhaltAntwort(text));
                         break;
                     }
 
@@ -88,29 +73,85 @@ public static class McpServer
         }
     }
 
+    private static JsonObject InitializeAntwort()
+    {
+        var werkzeugeFahigkeit = Neu();
+        werkzeugeFahigkeit["listChanged"] = false;
+        var fahigkeiten = Neu();
+        fahigkeiten["tools"] = werkzeugeFahigkeit;
+        var serverInfo = Neu();
+        serverInfo["name"] = "laserforge";
+        serverInfo["version"] = "0.1.0";
+        var ergebnis = Neu();
+        ergebnis["protocolVersion"] = "2024-11-05";
+        ergebnis["capabilities"] = fahigkeiten;
+        ergebnis["serverInfo"] = serverInfo;
+        return ergebnis;
+    }
+
+    private static JsonObject WerkzeuglisteAntwort()
+    {
+        var werkzeuge = new JsonArray();
+        werkzeuge.Add(Werkzeug("app_info", "Infos zu LaserForge (Version, Formate, Projektstand)."));
+        werkzeuge.Add(Werkzeug("maschinen_status",
+            "GRBL-Maschinenstatus pruefen (Port + Baud); nur Auslesung, keine Veraenderungen.",
+            ("port", "string", "COM-Port"), ("baud", "number", "Baudrate, Standard 115200")));
+        werkzeuge.Add(Werkzeug("projekt_konvertieren",
+            "Erzeugt GCode (GRBL-Flavor) aus einer .lbrn/.lbrn2/.svg-Datei.",
+            ("input", "string", "Dateipfad zum Projekt (.lbrn/.lbrn2/.svg)")));
+        var ergebnis = Neu();
+        ergebnis["tools"] = werkzeuge;
+        return ergebnis;
+    }
+
+    private static JsonObject TextInhaltAntwort(string text)
+    {
+        var stueck = Neu();
+        stueck["type"] = "text";
+        stueck["text"] = text;
+        var inhalt = new JsonArray();
+        inhalt.Add(stueck);
+        var ergebnis = Neu();
+        ergebnis["content"] = inhalt;
+        return ergebnis;
+    }
+
     private static JsonObject Neu() => new();
 
-    private static JsonObject FehlerObjekt(int code, string meldung) => Neu()
+    private static JsonObject FehlerObjekt(int code, string meldung)
     {
-        ["error"] = Neu() { ["code"] = code, ["message"] = meldung },
-    };
+        var inwendig = Neu();
+        inwendig["code"] = code;
+        inwendig["message"] = meldung;
+        var o = Neu();
+        o["error"] = inwendig;
+        return o;
+    }
 
     private static JsonObject Werkzeug(string name, string beschreibung, params (string Feld, string Typ, string Titel)[] felder)
     {
-        var schema = Neu() { ["type"] = "object" };
+        var schema = Neu();
+        schema["type"] = "object";
         if (felder.Length > 0)
         {
             var eigenschaften = Neu();
             var pflichtf = new JsonArray();
             foreach (var (feld, typ, titel) in felder)
             {
-                eigenschaften[feld] = Neu() { ["type"] = typ, ["description"] = titel };
+                var einzeln = Neu();
+                einzeln["type"] = typ;
+                einzeln["description"] = titel;
+                eigenschaften[feld] = einzeln;
                 pflichtf.Add(feld);
             }
             schema["properties"] = eigenschaften;
             schema["required"] = pflichtf;
         }
-        return Neu() { ["name"] = name, ["description"] = beschreibung, ["inputSchema"] = schema };
+        var o = Neu();
+        o["name"] = name;
+        o["description"] = beschreibung;
+        o["inputSchema"] = schema;
+        return o;
     }
 
     private static string WerkzeugAufruf(string name, JsonObject? args)
@@ -123,7 +164,7 @@ public static class McpServer
 
             case "maschinen_status":
             {
-                var port = args?["port"] as string;
+                var port = (string?)args?["port"];
                 if (string.IsNullOrWhiteSpace(port)) return "Fehler: 'port' fehlt.";
                 var baud = 115200;
                 if (args?["baud"] is JsonValue v && v.TryGetValue(out double d)) baud = (int)d;
@@ -141,13 +182,13 @@ public static class McpServer
 
             case "projekt_konvertieren":
             {
-                var eingang = args?["input"] as string;
+                var eingang = (string?)args?["input"];
                 if (string.IsNullOrWhiteSpace(eingang) || !File.Exists(eingang)) return "Fehler: 'input'-Datei fehlt.";
-                var text = File.ReadAllText(eingang);
+                var quelle = File.ReadAllText(eingang);
                 Projekt projekt;
                 if (eingang.EndsWith(".svg", StringComparison.OrdinalIgnoreCase))
-                    projekt = new Projekt { Formen = { LeserSvg.Lesen(text) } };
-                else projekt = LeserLbrn.Lesen(text);
+                    projekt = new Projekt { Formen = { LeserSvg.Lesen(quelle) } };
+                else projekt = LeserLbrn.Lesen(quelle);
                 var zeilen = GCodeErzeuger.Erzeuge(projekt);
                 return string.Join("\n", zeilen);
             }
@@ -157,15 +198,15 @@ public static class McpServer
         }
     }
 
-    private static void Ausgabe(JsonNode? kennung, JsonObject ergebnisOderFehler)
+    private static void Ausgabe(JsonNode? kennung, JsonObject inhaltOderFehler)
     {
         var antwort = new JsonObject();
         if (kennung is not null) antwort["id"] = kennung;
         antwort["jsonrpc"] = "2.0";
-        if (ergebnisOderFehler["error"] is not null)
-            antwort["error"] = ergebnisOderFehler["error"];
+        if (inhaltOderFehler["error"] is not null)
+            antwort["error"] = inhaltOderFehler["error"];
         else
-            antwort["result"] = ergebnisOderFehler;
+            antwort["result"] = inhaltOderFehler;
         Console.Out.WriteLine(antwort.ToJsonString());
         Console.Out.Flush();
     }

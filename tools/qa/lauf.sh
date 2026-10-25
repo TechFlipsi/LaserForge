@@ -14,7 +14,7 @@ fern_ps="powershell -NoProfile -ExecutionPolicy Bypass -File"
 fern_qa="C:\\Users\\Fabia\\LaserForge\\tools\\qa"
 fern_log="C:\\Users\\Fabia\\LaserForge\\qa"
 fern_cap="C:/Users/Fabia/.forge-qa"
-ziel_pngs="${1:-$wurzel/docs/qa/mein-gui"
+ziel_pngs="${1:-$wurzel/docs/qa/mein-gui}"
 
 echo "=== LASERFORGE M5-QA: AUTOMATIK-ZYKLUS ($(date '+%Y-%m-%d %H:%M:%S')) ==="
 
