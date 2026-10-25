@@ -3,9 +3,11 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using Avalonia;
+using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Media;
 using LaserForge.Core.Einstellungen;
+using LaserForge.Core.Formate;
 using LaserForge.Core.Formen;
 using LaserForge.Core.Geometrie;
 
@@ -29,8 +31,7 @@ public class Arbeitsflaeche : Control
     private static readonly IBrush LinealText = new SolidColorBrush(Color.Parse("#333333"));
     private static readonly IBrush LinealStriche = new SolidColorBrush(Color.Parse("#909090"));
     private static readonly IBrush PfeilGruen = new SolidColorBrush(Color.Parse("#00A000"));
-    private static readonly IBrush AuswahlOrange = new SolidColorBrush(Color.Parse("#FF9900"));
-    private static readonly IBrush GeistOrange = new SolidColorBrush(Color.Parse("#FF9900AA"));
+    private static readonly Color AuswahlFarbeT = Color.Parse("#FF9900");
 
     /// <summary>Projekt-Quelle für Zeichnung/Bearbeitung (aus dem Dokument der Fenster).</summary>
     public Projekt? Quelle { get ; set; }
