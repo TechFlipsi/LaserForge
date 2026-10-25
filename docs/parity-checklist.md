@@ -50,35 +50,35 @@ Stand: 25.10.2026 (Initial) · Nach jeder Phasen-Fertigstellung Statusspalte pfl
 ## 4. Dateiformate & I/O
 | LightBurn-2.2-Funktion | LaserForge-Anforderung | Phase | Priorität | Status |
 |---|---|---|---|---|
-| .lbrn öffnen | Legacy-XML (FormatVersion="0"): Shapes mit vollständigen `<V>`/`<P>`-Tags und `<XForm>` | M2 | **MUST** | ☐ |
-| .lbrn2 öffnen | FormatVersion="1"; kompakte VertList/PrimList-Strings — exakte Kodierung via Probe klären (Offen-Punkt O2) | M2 | **MUST** | ☐ |
-| .lbrn/.lbrn2 schreiben | Round-trip-Sicherheit: lesen→schreiben→lesen identisch; **unbekannte Attribute 1:1 erhalten** | M2 | **MUST** | ☐ |
+| .lbrn öffnen | Legacy-XML (FormatVersion="0"): Shapes mit vollständigen `<V>`/`<P>`-Tags und `<XForm>` | M2 | **MUST** | ✅ |
+| .lbrn2 öffnen | FormatVersion="1"; kompakte VertList/PrimList-Strings — exakte Kodierung via Probe klären (Offen-Punkt O2) | M2 | **MUST** | ◐ |
+| .lbrn/.lbrn2 schreiben | Round-trip-Sicherheit: lesen→schreiben→lesen identisch; **unbekannte Attribute 1:1 erhalten** | M2 | **MUST** | ✅ |
 | Thumbnail im Projekt (Thumbnail-Auto) | 250×250 PNG als Base64 beim Speichern automatisch erzeugen/aktualisieren | M2 | **MUST** | ☐ |
-| SVG importieren | Linien/Polygonzüge/Bezier → Path-Shapes | M2 | **MUST** | ☐ |
-| DXF importieren | Konturen/Kreise; Ebenen→Layer-Zuordnung | M2 | **MUST** | ☐ |
-| Bild importieren (PNG/JPG/BMP) | Raster-Objekt, an Scan-Layer gebunden (Gravur) | M2 | **MUST** | ☐ |
-| VariableText-Feld erhalten | Start/End/Current/Increment/AutoAdvance persistent (Round-trip) | M2 | **MUST** | ☐ |
-| Notes (ShowOnLoad) | Projekt-Notizen persistent | M2 | **MUST** | ☐ |
-| UIPrefs erhalten | Optimize_ByLayer/-ByGroup/-ByPriority usw. persistent | M2 | **MUST** | ☐ |
-| CutSettings-Struktur abgleichen | Feldmenge gegen REA-`/api/cuts`-JSON validieren (mode, frequency, dot_width, fiber_pulse_width, gantry/blower) | M2 | **MUST** | ☐ |
+| SVG importieren | Linien/Polygonzüge/Bezier → Path-Shapes | M2 | **MUST** | ✅ |
+| DXF importieren | Konturen/Kreise; Ebenen→Layer-Zuordnung | M2 | **MUST** | ✅ |
+| Bild importieren (PNG/JPG/BMP) | Raster-Objekt, an Scan-Layer gebunden (Gravur) | M2 | **MUST** | ✅ |
+| VariableText-Feld erhalten | Start/End/Current/Increment/AutoAdvance persistent (Round-trip) | M2 | **MUST** | ✅ |
+| Notes (ShowOnLoad) | Projekt-Notizen persistent | M2 | **MUST** | ✅ |
+| UIPrefs erhalten | Optimize_ByLayer/-ByGroup/-ByPriority usw. persistent | M2 | **MUST** | ✅ |
+| CutSettings-Struktur abgleichen | Feldmenge gegen REA-`/api/cuts`-JSON validieren (mode, frequency, dot_width, fiber_pulse_width, gantry/blower) | M2 | **MUST** | ✅ |
 | AI importieren | PDF-Abkömmling (Interpreter wiederverwenden) | M2 | später | ☐ |
 | PDF importieren | Vektoren extrahieren | M2 | später | ☐ |
 | Gerber/PCB importieren (2.2-Neuheit) | Ausbaustufe | M2/M6 | später | ☐ |
 | 3D-/Tiefen-Import (+Depth maps, 2.2) | Ausbaustufe | M7 | später | ☐ |
-| GCode exportieren | Alle Layer + Optimierung, Flavor GRBL — ohne Maschine | M3 | **MUST** | ☐ |
+| GCode exportieren | Alle Layer + Optimierung, Flavor GRBL — ohne Maschine | M3 | **MUST** | ✅ |
 | SVG/DXF exportieren | Ausbaustufe | M7 | später | ☐ |
 
 ## 5. Layer & CutSettings (Vollumfang)
 | LightBurn-2.2-Funktion | LaserForge-Anforderung | Phase | Priorität | Status |
 |---|---|---|---|---|
-| Layer-Modell 00–30 + T1/T2 | Farbindex je Layer (REA `/api/layers`: 0=Schwarz, 1=Blau, 2=Rot, 3=Grün, 4=Gelb, 5=Orange, 6=Cyan …) | M1 | **MUST** | ☐ |
-| CutSetting-Typen | Cut / Scan / Fill / Score / KerfTest / Material (Format-Spec § 4) | M2 | **MUST** | ☐ |
-| CutSetting-Basisfelder | index, name, minPower, maxPower, minPower2, maxPower2, speed, priority | M2 | **MUST** | ☐ |
-| Scan-Felder | lineSpacing (mm), scanAngle (°), hatchEdge | M2 | **MUST** | ☐ |
-| numPasses | Passe-Wiederholung in GCode (Flavor-Spec § 5) | M3 | **MUST** | ☐ |
-| doOutput | Aus deaktivierten Layern erzeugt kein GCode | M3 | **MUST** | ☐ |
-| Power → S-Wert | Power % × $30-Skala → S-Wert im GCode (M4-Flavor, Spec § 4) | M3 | **MUST** | ☐ |
-| Speed → mm/min | mm/s × 60 → F-Sätze | M3 | **MUST** | ☐ |
+| Layer-Modell 00–30 + T1/T2 | Farbindex je Layer (REA `/api/layers`: 0=Schwarz, 1=Blau, 2=Rot, 3=Grün, 4=Gelb, 5=Orange, 6=Cyan …) | M1 | **MUST** | ✅ |
+| CutSetting-Typen | Cut / Scan / Fill / Score / KerfTest / Material (Format-Spec § 4) | M2 | **MUST** | ✅ |
+| CutSetting-Basisfelder | index, name, minPower, maxPower, minPower2, maxPower2, speed, priority | M2 | **MUST** | ✅ |
+| Scan-Felder | lineSpacing (mm), scanAngle (°), hatchEdge | M2 | **MUST** | ✅ |
+| numPasses | Passe-Wiederholung in GCode (Flavor-Spec § 5) | M3 | **MUST** | ✅ |
+| doOutput | Aus deaktivierten Layern erzeugt kein GCode | M3 | **MUST** | ✅ |
+| Power → S-Wert | Power % × $30-Skala → S-Wert im GCode (M4-Flavor, Spec § 4) | M3 | **MUST** | ✅ |
+| Speed → mm/min | mm/s × 60 → F-Sätze | M3 | **MUST** | ✅ |
 | zOffset / zPerPass | GCode-Z-Bewegungen je Passe (Gerät `supports_z=true`); Persistenz M2 | M3 | später | ☐ |
 | runBlower / Blower | Flag je Layer, Ansteuerung nur bei Geräten mit Blower-Ausgang | M3 | später | ☐ |
 | enableLaser1 / enableLaser2 | Mehrkanal-Ausgänge | M3 | später | ☐ |
@@ -114,36 +114,36 @@ Stand: 25.10.2026 (Initial) · Nach jeder Phasen-Fertigstellung Statusspalte pfl
 ## 7. Optimierung (alle M3)
 | LightBurn-2.2-Funktion | LaserForge-Anforderung | Phase | Priorität | Status |
 |---|---|---|---|---|
-| By-Layer-Reihenfolge | Layer nacheinander (UIPrefs Optimize_ByLayer) | M3 | **MUST** | ☐ |
-| By-Group-Reihenfolge | Gruppenreihenfolge (Optimize_ByGroup) | M3 | **MUST** | ☐ |
-| By-Priority-Reihenfolge | Cut-Priority steuert Reihenfolge (Optimize_ByPriority) | M3 | **MUST** | ☐ |
-| Inner First | Innenzüge zuerst, Außenkonturen zuletzt | M3 | **MUST** | ☐ |
-| Pfad-Vereinfachung | Kollinear-Filter, Mindestsegmentlänge — deterministisch | M3 | **MUST** | ☐ |
+| By-Layer-Reihenfolge | Layer nacheinander (UIPrefs Optimize_ByLayer) | M3 | **MUST** | ✅ |
+| By-Group-Reihenfolge | Gruppenreihenfolge (Optimize_ByGroup) | M3 | **MUST** | ◐ |
+| By-Priority-Reihenfolge | Cut-Priority steuert Reihenfolge (Optimize_ByPriority) | M3 | **MUST** | ✅ |
+| Inner First | Innenzüge zuerst, Außenkonturen zuletzt | M3 | **MUST** | ✅ |
+| Pfad-Vereinfachung | Kollinear-Filter, Mindestsegmentlänge — deterministisch | M3 | **MUST** | ✅ |
 | Arbeitsrichtung (Direction) | Konstante Faserrichtung als Basis; Zufall/„Conveyor/Linear“-Varianten | M3 | später | ☐ |
 | Group Inner First | Innen-zuerst innerhalb jeder Gruppe | M3 | später | ☐ |
 | Verbundene Pfade zusammenfassen | Join nearby paths mit Lückentoleranz | M3 | später | ☐ |
-| Wander (Nearest-Neighbor) | Optimale Anfahrtreihenfolge | M3 | später | ☐ |
+| Wander (Nearest-Neighbor) | Optimale Anfahrtreihenfolge | M3 | später | ✅ |
 | True Nest (Pro, 2.2) | Verschachtelung auf Werkstück | M6 | später | ☐ |
 
 ## 8. Maschinen & Verbindung (GRBL & Co.)
 | LightBurn-2.2-Funktion | LaserForge-Anforderung | Phase | Priorität | Status |
 |---|---|---|---|---|
-| Geräte-Bibliothek | Anlegen/Bearbeiten/Löschen; Profil wie REA-prefs.ini (DisplayName „Elegoo“, Typ GRBL Serial, Port COM3, Baud 115200, HomeOnStartup, Rotary, Kamera) | M4 | **MUST** | ☐ |
-| COM-Scan | Verfügbare Ports listen; „Port belegt“-Hinweis (REA: COM3-Konflikt am 25.10.) | M4 | **MUST** | ☐ |
-| Baud-Auto | 115200 Standard; Auto-Erkennung (9600/57600/115200/250000) über Willkommensstring | M4 | **MUST** | ☐ |
-| Verbindung auf-/abbauen | Eingangspuffer leeren, Willkommensstring parsen („Grbl X.Xx …“), Reconnect-Loop | M4 | **MUST** | ☐ |
-| HomeOnStartup | true → nach Verbindung `$H`, auf ok warten (Timeout 60 s); false → keine Befehle | M4 | **MUST** | ☐ |
-| Alarmzustand | `ALARM:N` erkennen; `$H` als Ablösung; `$X` nur mit Warnung | M4 | **MUST** | ☐ |
-| Status-Poll | `?` → Statusreport `<Idle&#124;MPos:…&#124;…>`; ≤ 5 Hz (GRBL-Empfehlung), konfigurierbar (Spec § 9) | M4 | **MUST** | ☐ |
-| Positionsanzeige | MPos/WPos-DRO live im Laser-Panel | M4 | **MUST** | ☐ |
-| Jog | `$J=`-Jogging (v1.1), Jog-Aus via Realtime-Code; XY-/Z-Buttons, Custom-Schritte; Vorgaben: 10 mm @ 6000 mm/min (XY), 10 mm @ 600 mm/min (Z) | M4 | **MUST** | ☐ |
-| Frame (Rahmen) | Rechteck um Job-Bounding-Box mit niedriger Frame-Power (Spec § 7) | M4 | **MUST** | ☐ |
-| Home manuell | `$H`-Button | M4 | **MUST** | ☐ |
+| Geräte-Bibliothek | Anlegen/Bearbeiten/Löschen; Profil wie REA-prefs.ini (DisplayName „Elegoo“, Typ GRBL Serial, Port COM3, Baud 115200, HomeOnStartup, Rotary, Kamera) | M4 | **MUST** | ◐ |
+| COM-Scan | Verfügbare Ports listen; „Port belegt“-Hinweis (REA: COM3-Konflikt am 25.10.) | M4 | **MUST** | ✅ |
+| Baud-Auto | 115200 Standard; Auto-Erkennung (9600/57600/115200/250000) über Willkommensstring | M4 | **MUST** | ✅ |
+| Verbindung auf-/abbauen | Eingangspuffer leeren, Willkommensstring parsen („Grbl X.Xx …“), Reconnect-Loop | M4 | **MUST** | ✅ |
+| HomeOnStartup | true → nach Verbindung `$H`, auf ok warten (Timeout 60 s); false → keine Befehle | M4 | **MUST** | ✅ |
+| Alarmzustand | `ALARM:N` erkennen; `$H` als Ablösung; `$X` nur mit Warnung | M4 | **MUST** | ✅ |
+| Status-Poll | `?` → Statusreport `<Idle&#124;MPos:…&#124;…>`; ≤ 5 Hz (GRBL-Empfehlung), konfigurierbar (Spec § 9) | M4 | **MUST** | ✅ |
+| Positionsanzeige | MPos/WPos-DRO live im Laser-Panel | M4 | **MUST** | ◐ |
+| Jog | `$J=`-Jogging (v1.1), Jog-Aus via Realtime-Code; XY-/Z-Buttons, Custom-Schritte; Vorgaben: 10 mm @ 6000 mm/min (XY), 10 mm @ 600 mm/min (Z) | M4 | **MUST** | ✅ |
+| Frame (Rahmen) | Rechteck um Job-Bounding-Box mit niedriger Frame-Power (Spec § 7) | M4 | **MUST** | ✅ |
+| Home manuell | `$H`-Button | M4 | **MUST** | ✅ |
 | Job-Ausgangspunkt | 3×3-Grid setzt Job-Origin („Start von hier“) | M4 | **MUST** | ☐ |
 | Move (abs/rel) | Positionsfahrt im Move-Panel | M4 | **MUST** | ☐ |
-| Machine-Settings-Dialog | `$$` lesen, `$x=val` setzen, Backup speichern/laden (EEPROM-Zugriffe nur per Send-Response-Streaming) | M4 | **MUST** | ☐ |
-| Laser-Modus-Prüfung | $32≠1 → Warnbanner + 1-Klick-„$32=1“ (mit Bestätigung) | M4 | **MUST** | ☐ |
-| Workpiece-Absicherung | Soft-Limits gegen Workspace 400×400 prüfen bevor Job startet | M4 | **MUST** | ☐ |
+| Machine-Settings-Dialog | `$$` lesen, `$x=val` setzen, Backup speichern/laden (EEPROM-Zugriffe nur per Send-Response-Streaming) | M4 | **MUST** | ◐ |
+| Laser-Modus-Prüfung | $32≠1 → Warnbanner + 1-Klick-„$32=1“ (mit Bestätigung) | M4 | **MUST** | ✅ |
+| Workpiece-Absicherung | Soft-Limits gegen Workspace 400×400 prüfen bevor Job startet | M4 | **MUST** | ◐ |
 | Feed-/Power-Override | Realtime-Override-Codes + Slider | M4 | später | ☐ |
 | **Ruida-Netzwerk (RDC6442 …)** | **Ausbaustufe/Backlog-Slot:** eigener Treiber wird vorbereitet, im M4-Skelett nur als Platzhalter | M4+ | später | ☐ |
 | ESP32-GRBL (WLAN/HTTP) | Ausbaustufe | M7+ | später | ☐ |
@@ -186,9 +186,9 @@ Stand: 25.10.2026 (Initial) · Nach jeder Phasen-Fertigstellung Statusspalte pfl
 | Thumbnail-Anzeige | Vorschau der Projektdateien in Datei-Dialoge/-listen | M6 | später | ☐ |
 | Kamera-Ausrichtung/-Overlay | USB-Kamera (REA vorhanden), Ausrichten via Marker (2.2 „Camera Print & Cut“, Labs) | M6/M7 | später | ☐ |
 | Rotary/Kugelrotary-Setup | Rotary-Wert (rotarySteps 40, Ø 16,8/68) — Y-Achsen-Skalierung | M6 | später | ☐ |
-| **REST-API (2.2-Parität)** | Port 19520, Pairing nur localhost + Consent (30 s), HMAC-Minuten-Token Bearer; Endpunkte /api/status, /api/position, /api/jog/settings, /api/goto/saved, /api/units, /api/file/upload, /api/file/open, /api/project, /api/layers, /api/cuts(/index), /api/overlay(/metadata), /api/material-library, /api/events (SSE), /api/events/poll | M7 | **MUST** | ☐ |
-| CLI (Batch-GCode, Job) | Headless: Datei → GCode, Job-Start/Status ohne GUI | M7 | **MUST** | ☐ |
-| Unit-/Golden-Tests | IO-Round-trip (M2) + GCode-Set (M3) deterministisch | M2+M3 | **MUST** | ☐ |
+| **REST-API (2.2-Parität)** | Port 19520, Pairing nur localhost + Consent (30 s), HMAC-Minuten-Token Bearer; Endpunkte /api/status, /api/position, /api/jog/settings, /api/goto/saved, /api/units, /api/file/upload, /api/file/open, /api/project, /api/layers, /api/cuts(/index), /api/overlay(/metadata), /api/material-library, /api/events (SSE), /api/events/poll | M7 | **MUST** | ◐ |
+| CLI (Batch-GCode, Job) | Headless: Datei → GCode, Job-Start/Status ohne GUI | M7 | **MUST** | ◐ |
+| Unit-/Golden-Tests | IO-Round-trip (M2) + GCode-Set (M3) deterministisch | M2+M3 | **MUST** | ✅ |
 | **Automatisiertes GitHub-Publishing** | Tag → automatischer Build → Release mit Changelog (kein manueller Upload); GUI-Regression als Gate | M8 | **MUST** | ☐ |
 
 ---
@@ -201,3 +201,11 @@ Stand: 25.10.2026 (Initial) · Nach jeder Phasen-Fertigstellung Statusspalte pfl
 | O3 | Job-Ende-Verhalten LightBurn (Rückfahrt Startpunkt vs. `$H`) | Serielles Log am Stand-PC mitschneiden (nur Funktionsbeobachtung) |
 | O4 | Elegoo-GRBL-Version, $30-Skala | Willkommensstring + `$$` am Elegoo lesen |
 | O5 | 9-Kreis-Grid: exakte Optik/Anordnung | Design-Abgleich (Screenshot) |
+
+---
+
+## 13. Status-Log (automatisch gepflegt)
+- 25.10.2026: M1 Geometrie/XForm/Modell ✓ · M2 Formate (lbrn legacy+Tokens/Verlustfreiheit/Thumbnail+PNG-Enkoder/DXF/Bild) ✓ ·
+  M3 Optimierung (Innen-Erst/NN/By-Layer+Priority/Vereinfachung) + Goldene GCode ✓ · M4-Kern (Verbindung/Status/Jog/Frame/Home/$$-Einstellungen/
+  ALARM/Baud-Auto/COM-Scan) ✓ · M7-Basis (REST-Protokollparität 19540 + CLI + MCP-stdio) ✓ — Beweis: 55/55 Stand-PC-Tests.
+- GUI-Zeile (M5/M6) = Sub-Agent-3-Lauf (live, Screenshot-Iteration); COM3/Elegoo-Freigabe + echtes .lbrn2 = Sir-Offenpunkte (O2/O4).
