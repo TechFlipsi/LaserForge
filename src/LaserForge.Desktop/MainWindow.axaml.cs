@@ -1,6 +1,7 @@
 using System;
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Interactivity;
 using Avalonia.Media;
 using LaserForge.Desktop.Controls;
 
@@ -37,12 +38,17 @@ public partial class MainWindow : Window
         ("28", "#A000A0"), ("29", "#404080"), ("30", "#206040"), ("T1", "#202020"), ("T2", "#606060"),
     };
 
+    /// <summary>6 eigengebaute Tab-Knöpfe (eine Zeile, kein Zeilenumbruch).</summary>
+    private Button[] TabKnopfe = null!;
+
+    /// <summary>Aktiver Tab (Bibelvorgabe: Konsole = 2).</summary>
+    private int aktiverTab = 2;
+
     public MainWindow()
     {
         InitializeComponent();
+        TabKnopfe = new[] { TabKnopf0, TabKnopf1, TabKnopf2, TabKnopf3, TabKnopf4, TabKnopf5 };
         BaueLayerleiste();
-        // Bibelvorgabe: Konsole-Tab aktiv (Index 2) — erst im Konstruktor, nicht im Init-Event.
-        TabLeiste.SelectedIndex = 2;
         AktualisiereTabs();
     }
 
@@ -80,44 +86,64 @@ public partial class MainWindow : Window
         return helligkeit > 0.55 ? Colors.Black : Colors.White;
     }
 
-    /// <summary>Reihenfolge Bibel: [0] Schnitte/Ebenen [1] Bewegen [2] Konsole [3] Makros [4] Kamera/Overlays [5] Seiten.</summary>
-    private void OnTabWechsel(object? sender, SelectionChangedEventArgs e) => AktualisiereTabs();
+    /// <summary>Klick auf einen der 6 Tab-Knöpfe → Inhalt wechseln.</summary>
+    private void OnTabKnopf(object? sender, RoutedEventArgs e)
+    {
+        if (sender is Button knopf && knopf.Parent is StackPanel leiste)
+        {
+            aktiverTab = leiste.Children.IndexOf(knopf);
+            AktualisiereTabs();
+        }
+    }
 
+    /// <summary>Sichtbarkeiten + Knopfmarkierung je aktiver Tab (Null-robust beim Init).</summary>
     private void AktualisiereTabs()
     {
-        // Null-robust: SelectionChanged kann während des XAML-Inits feuern (Felder noch null).
-        if (TabLeiste is null)
+        if (TabKnopfe is null)
         {
             return;
         }
-        int idx = Math.Clamp(TabLeiste.SelectedIndex, 0, TabNamen.Length - 1);
+        aktiverTab = Math.Clamp(aktiverTab, 0, TabNamen.Length - 1);
         if (TabTitel is not null)
         {
-            TabTitel.Text = TabNamen[idx];
+            TabTitel.Text = TabNamen[aktiverTab];
         }
         if (TabEbenen is not null)
         {
-            TabEbenen.IsVisible = idx == 0;
+            TabEbenen.IsVisible = aktiverTab == 0;
         }
         if (TabBewegen is not null)
         {
-            TabBewegen.IsVisible = idx == 1;
+            TabBewegen.IsVisible = aktiverTab == 1;
         }
         if (TabKonsole is not null)
         {
-            TabKonsole.IsVisible = idx == 2;
+            TabKonsole.IsVisible = aktiverTab == 2;
         }
         if (TabMakros is not null)
         {
-            TabMakros.IsVisible = idx == 3;
+            TabMakros.IsVisible = aktiverTab == 3;
         }
         if (TabKamera is not null)
         {
-            TabKamera.IsVisible = idx == 4;
+            TabKamera.IsVisible = aktiverTab == 4;
         }
         if (TabSeiten is not null)
         {
-            TabSeiten.IsVisible = idx == 5;
+            TabSeiten.IsVisible = aktiverTab == 5;
+        }
+        for (int i = 0; i < TabKnopfe.Length; i++)
+        {
+            var knopf = TabKnopfe[i];
+            if (knopf is null)
+            {
+                continue;
+            }
+            knopf.Classes.Remove("aktiv");
+            if (i == aktiverTab)
+            {
+                knopf.Classes.Add("aktiv");
+            }
         }
     }
 }

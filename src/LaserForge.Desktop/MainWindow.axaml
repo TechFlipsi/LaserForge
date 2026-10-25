@@ -52,6 +52,20 @@
       <Setter Property="Foreground" Value="#D8D8D8"/>
       <Setter Property="MinHeight" Value="26"/>
     </Style>
+    <Style Selector="Button.tab">
+      <Setter Property="Background" Value="#2E2E2E"/>
+      <Setter Property="BorderThickness" Value="0"/>
+      <Setter Property="CornerRadius" Value="3"/>
+      <Setter Property="Padding" Value="7,3"/>
+      <Setter Property="FontSize" Value="10"/>
+      <Setter Property="Foreground" Value="#B8B8B8"/>
+      <Setter Property="MinHeight" Value="24"/>
+      <Setter Property="Margin" Value="0,2,2,2"/>
+    </Style>
+    <Style Selector="Button.tab.aktiv">
+      <Setter Property="Background" Value="#4A4A4A"/>
+      <Setter Property="Foreground" Value="#FFFFFF"/>
+    </Style>
   </Window.Styles>
 
   <DockPanel LastChildFill="True">
@@ -383,15 +397,15 @@
             </Grid>
           </Grid>
 
-          <!-- Tab-Leiste: 6 Tabs in Bibel-Reihenfolge; aktiv = hell auf dunklem Feld -->
-          <TabStrip Grid.Row="2" x:Name="TabLeiste" FontSize="11" SelectionChanged="OnTabWechsel" Background="#232323">
-            <TabItem Header="Schnitte/Ebenen"/>
-            <TabItem Header="Bewegen"/>
-            <TabItem Header="Konsole"/>
-            <TabItem Header="Makros"/>
-            <TabItem Header="Kamera/Overlays"/>
-            <TabItem Header="Seiten"/>
-          </TabStrip>
+          <!-- Tab-Leiste: 6 eigene Tab-Knöpfe in einer Zeile (Bibel-Reihenfolge); aktiv = hell -->
+          <StackPanel Grid.Row="2" Background="#232323" Orientation="Horizontal">
+            <Button x:Name="TabKnopf0" Classes="tab" Content="Schnitte/Ebenen" Click="OnTabKnopf"/>
+            <Button x:Name="TabKnopf1" Classes="tab" Content="Bewegen" Click="OnTabKnopf"/>
+            <Button x:Name="TabKnopf2" Classes="tab" Content="Konsole" Click="OnTabKnopf"/>
+            <Button x:Name="TabKnopf3" Classes="tab" Content="Makros" Click="OnTabKnopf"/>
+            <Button x:Name="TabKnopf4" Classes="tab" Content="Kamera/Overlays" Click="OnTabKnopf"/>
+            <Button x:Name="TabKnopf5" Classes="tab" Content="Seiten" Click="OnTabKnopf"/>
+          </StackPanel>
 
           <!-- Laser-Band (rot) -->
           <Border Grid.Row="3" Height="20" Margin="0,4,0,2">
