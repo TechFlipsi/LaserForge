@@ -20,8 +20,29 @@ public static class SchreiberLbrn
             new XAttribute("MaterialHeight", Doppel(p.MaterialHeight)),
             new XAttribute("MirrorX", Boolsch(p.MirrorX)),
             new XAttribute("MirrorY", Boolsch(p.MirrorY)));
+        if (p.VariableText is { } vtBlock)
+        {
+            var vtEl = new XElement("VariableText");
+            vtEl.Add(new XElement("Start", new XAttribute("Value", vtBlock.Start)));
+            vtEl.Add(new XElement("End", new XAttribute("Value", vtBlock.Ende)));
+            vtEl.Add(new XElement("Current", new XAttribute("Value", vtBlock.Aktueller)));
+            vtEl.Add(new XElement("Increment", new XAttribute("Value", vtBlock.Schritt)));
+            vtEl.Add(new XElement("AutoAdvance", new XAttribute("Value", Boolsch(vtBlock.AutoWeiterschalten))));
+            wurzel.Add(vtEl);
+        }
+        if (p.UIPrefs.Count > 0)
+        {
+            var upEl = new XElement("UIPrefs");
+            foreach (var kv in p.UIPrefs) upEl.Add(new XElement(kv.Key, new XAttribute("Value", kv.Value)));
+            wurzel.Add(upEl);
+        }
         foreach (var s in p.GeordneteSchnitte()) wurzel.Add(SchreibeSchnitt(s));
         foreach (var f in p.Formen) wurzel.Add(SchreibeForm(f));
+        if (p.Notizen is { } notizBlock)
+            wurzel.Add(new XElement("Notes",
+                new XAttribute("ShowOnLoad", Boolsch(notizBlock.BeiLadenZeigen)),
+                new XAttribute("Notes", notizBlock.Text)));
+        foreach (var k in p.RestKnoten) wurzel.Add(new XElement(k));
         var dekl = new XDeclaration("1.0", "UTF-8", null);
         return new XDocument(dekl, wurzel).ToString().Replace("\r\n", "\n") + "\n";
     }

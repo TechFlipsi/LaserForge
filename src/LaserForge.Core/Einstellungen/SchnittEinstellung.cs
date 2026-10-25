@@ -11,6 +11,9 @@ public sealed class SchnittEinstellung
     public bool Aktiviert { get; set; } = true;
     public double MinPower { get; set; } = 80;
     public double MaxPower { get; set; } = 80;
+    /// <summary>Feld-Partner minPower2/maxPower2 (Format-Spec; Default 80).</summary>
+    public double MinPower2 { get; set; } = 80;
+    public double MaxPower2 { get; set; } = 80;
     public double Speed { get; set; } = 30;          // mm/s
     public int Prioritaet { get; set; }
     public int NumPasses { get; set; } = 1;

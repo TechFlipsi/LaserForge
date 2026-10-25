@@ -44,6 +44,8 @@ public static class LeserLbrn
                     case "name": s.NameSektion = wert; break;
                     case "minPower": s.MinPower = ZahlD(wert); break;
                     case "maxPower": s.MaxPower = ZahlD(wert); break;
+                    case "minPower2": s.MinPower2 = ZahlD(wert); break;
+                    case "maxPower2": s.MaxPower2 = ZahlD(wert); break;
                     case "speed": s.Speed = ZahlD(wert); break;
                     case "priority": s.Prioritaet = ZahlInt(wert); break;
                     case "numPasses": s.NumPasses = ZahlInt(wert); break;
@@ -63,6 +65,39 @@ public static class LeserLbrn
         }
         foreach (var sh in wurzel.Elements("Shape"))
             p.Formen.Add(LesenForm(sh));
+        // VariableText / Notes / UIPrefs (Format-Realnamen) + Rest-Knoten verlustfrei
+        var vt = wurzel.Element("VariableText");
+        if (vt is not null)
+        {
+            var v = new VariableTextEinstellungen();
+            foreach (var k in vt.Elements())
+            {
+                string w = k.GetString("Value") ?? "";
+                switch (k.Name.LocalName)
+                {
+                    case "Start": v.Start = ZahlInt(w); break;
+                    case "End": v.Ende = ZahlInt(w); break;
+                    case "Current": v.Aktueller = ZahlInt(w); break;
+                    case "Increment": v.Schritt = ZahlInt(w); break;
+                    case "AutoAdvance": v.AutoWeiterschalten = IstDoppel(w); break;
+                }
+            }
+            p.VariableText = v;
+        }
+        var notizen = wurzel.Element("Notes");
+        if (notizen is not null)
+            p.Notizen = new Notizen
+            {
+                BeiLadenZeigen = IstDoppel(notizen.GetString("ShowOnLoad")),
+                Text = notizen.GetString("Notes") ?? "",
+            };
+        var up = wurzel.Element("UIPrefs");
+        if (up is not null)
+            foreach (var k in up.Elements())
+                p.UIPrefs[k.Name.LocalName] = k.GetString("Value") ?? "";
+        foreach (var k in wurzel.Elements())
+            if (k.Name.LocalName is not ("CutSetting" or "Shape" or "VariableText" or "Notes" or "UIPrefs" or "Thumbnail"))
+                p.RestKnoten.Add(new XElement(k));
         return p;
     }
 
