@@ -10,6 +10,8 @@ public sealed class GrblVerbindung
     private static readonly CultureInfo E = CultureInfo.InvariantCulture;
     public LaserForge.Devices.Transport.ITransport Transport { get; }
     public List<string> BegruessungZeilen { get; } = new();
+    /// <summary>Letzte ALARM:N-Zeile (Notaus-Zustand) — fuer GUI-Banner + Ablaufsteuerung.</summary>
+    public string? LetzterAlarm { get; private set; }
     public GrblVerbindung(LaserForge.Devices.Transport.ITransport transport) { Transport = transport; }
     public void Oeffnen()
     {
@@ -84,6 +86,20 @@ public sealed class GrblVerbindung
             var z = Transport.LesenZeile(150);
             if (z == "ok") return true;
             if (z is not null && z.StartsWith("error", StringComparison.OrdinalIgnoreCase)) return false;
+            if (z is not null && z.StartsWith("ALARM", StringComparison.OrdinalIgnoreCase)) LetzterAlarm = z;
+        }
+        return false;
+    }
+    /// <summary>Lang-Warten (fuer $H-zyklen: Homing braucht bis 60s).</summary>
+    public bool WarteAufOkLange(int timeoutMs)
+    {
+        var ende = DateTime.UtcNow.AddMilliseconds(timeoutMs);
+        while (DateTime.UtcNow < ende)
+        {
+            var z = Transport.LesenZeile(300);
+            if (z == "ok") return true;
+            if (z is not null && z.StartsWith("error", StringComparison.OrdinalIgnoreCase)) return false;
+            if (z is not null && z.StartsWith("ALARM", StringComparison.OrdinalIgnoreCase)) LetzterAlarm = z;
         }
         return false;
     }
