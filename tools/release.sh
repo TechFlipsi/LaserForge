@@ -15,7 +15,7 @@ cd "$WURZEL"
 git add -A
 git commit -q -m "release: $TAG" 2>/dev/null || true
 git tag -f "$TAG" -m "$TITEL"
-git push origin "$TAG" > /dev/null
+git push origin "$TAG" --force > /dev/null
 
 echo "### Windows-Publish — am stand-pc (kibot hat kein dotnet)"
 ssh -o BatchMode=yes stand-pc "cd /d C:\\Users\\Fabia\\ForgeKern && dotnet publish C:\\Users\\Fabia\\ForgeKern\\src\\LaserForge.Desktop\\LaserForge.Desktop.csproj -c Release -r win-x64 --self-contained false -o C:\\Users\\Fabia\\ForgeKern\\publish -v q"
