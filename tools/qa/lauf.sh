@@ -18,6 +18,13 @@ ziel_pngs="${1:-$wurzel/docs/qa/mein-gui}"
 echo "=== LASERFORGE M5-QA: AUTOMATIK-ZYKLUS ($(date '+%Y-%m-%d %H:%M:%S')) ==="
 
 # --- 1/6: QA-Skripte uebertragen (capture_windows.ps1 NICHT anfassen - dort schon vorhanden) ---
+echo "### 0/6 QUELLE-Quersync: src/tests/tools + Projektdateien (immer frisch!)"
+scp -q -r "$wurzel/src" "$wurzel/tests" "$wurzel/tools" "stand-pc:C:/Users/Fabia/LaserForge/" \
+    || { echo "FEHLER: scp der Quelle gescheitert"; exit 3; }
+scp -q "$wurzel/LaserForge.sln" "$wurzel/Directory.Build.props" "$wurzel/.gitignore" "$wurzel/README.md" "$wurzel/LICENSE" \
+    "stand-pc:C:/Users/Fabia/LaserForge/" || { echo "FEHLER: scp Projektdateien gescheitert"; exit 3; }
+echo "OK: Quellquelle frisch (src/tests/tools/sln/props)"
+
 echo "### 1/6 QA-Skripte per scp zum Stand-PC"
 $ssh_cmd "if not exist C:\\Users\\Fabia\\LaserForge\\tools\\qa\\ mkdir C:\\Users\\Fabia\\LaserForge\\tools\\qa" > /dev/null 2>&1
 scp -q "$wurzel/tools/qa/baute_test.ps1" "$wurzel/tools/qa/gui_start.ps1" "$wurzel/tools/qa/gui_capture.ps1" \

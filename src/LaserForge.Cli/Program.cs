@@ -13,6 +13,9 @@ if (args.Length == 0)
 }
 switch (args[0].ToLowerInvariant())
 {
+    case "mcp":
+        McpServer.Laufen();
+        return 0;
     case "info":
         Console.WriteLine($"LaserForge CLI 0.1.0 — .NET {Environment.Version}");
         Console.WriteLine($"Zeit: {DateTime.Now:yyyy-MM-dd HH:mm:ss} — Formate: .lbrn/.lbrn2, GRBL-Flavor");
