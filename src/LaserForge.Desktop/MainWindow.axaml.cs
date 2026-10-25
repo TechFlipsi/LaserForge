@@ -10,6 +10,7 @@ using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Media;
 using Avalonia.Media.Imaging;
+using Avalonia.Platform;
 using Avalonia.Platform.Storage;
 using LaserForge.Core.Einstellungen;
 using LaserForge.Core.Formate;
@@ -393,7 +394,7 @@ public partial class MainWindow : Window
             string text = SchreiberLbrn.Schreiben(dokument.Projekt);
             if (dokument.Dateipfad.Length == 0)
             {
-                var ziel = await StorageProvider.SaveFilePickerAsync(new FilePickerSaveFileOptions
+                var ziel = await StorageProvider.SaveFilePickerAsync(new FilePickerSaveOptions
                 {
                     Title = "Projekt speichern",
                     SuggestedFileName = "unbenannt",
@@ -611,7 +612,7 @@ public partial class MainWindow : Window
                     zeile[x * 4 + 2] = g;   // R
                     zeile[x * 4 + 3] = 255; // A
                 }
-                Marshal.Copy(zeile, 0, rahmen.Address + (long)y * rahmen.RowBytes, zeile.Length);
+                Marshal.Copy(zeile, 0, (nint)(rahmen.Address + (long)y * rahmen.RowBytes), zeile.Length);
             }
         }
         return bitmap;
@@ -739,7 +740,7 @@ public partial class MainWindow : Window
         {
             case TextBox t when ReferenceEquals(t, FeldXPos):
             {
-                double nx = Zahle(t.Text);
+                double nx = Zahle(t.Text ?? "");
                 if (!double.IsNaN(nx) && Math.Abs(nx - box.minX) > 1e-9)
                 {
                     dokument.Sichere("X-Position setzen");
@@ -749,7 +750,7 @@ public partial class MainWindow : Window
             }
             case TextBox t when ReferenceEquals(t, FeldYPos):
             {
-                double ny = Zahle(t.Text);
+                double ny = Zahle(t.Text ?? "");
                 if (!double.IsNaN(ny) && Math.Abs(ny - box.minY) > 1e-9)
                 {
                     dokument.Sichere("Y-Position setzen");
@@ -759,7 +760,7 @@ public partial class MainWindow : Window
             }
             case TextBox t when ReferenceEquals(t, FeldBreite):
             {
-                double nb = Zahle(t.Text), bw = box.maxX - box.minX;
+                double nb = Zahle(t.Text ?? ""), bw = box.maxX - box.minX;
                 if (!double.IsNaN(nb) && nb > 0.05 && bw > 0.05 && Math.Abs(nb - bw) > 1e-9)
                 {
                     dokument.Sichere("Breite setzen");
@@ -769,7 +770,7 @@ public partial class MainWindow : Window
             }
             case TextBox t when ReferenceEquals(t, FeldHoehe):
             {
-                double nh = Zahle(t.Text), hh = box.maxY - box.minY;
+                double nh = Zahle(t.Text ?? ""), hh = box.maxY - box.minY;
                 if (!double.IsNaN(nh) && nh > 0.05 && hh > 0.05 && Math.Abs(nh - hh) > 1e-9)
                 {
                     dokument.Sichere("Höhe setzen");
@@ -779,7 +780,7 @@ public partial class MainWindow : Window
             }
             case TextBox t when ReferenceEquals(t, FeldDrehen):
             {
-                double wd = Zahle(t.Text);
+                double wd = Zahle(t.Text ?? "");
                 if (!double.IsNaN(wd) && Math.Abs(wd - drehWinkel) > 1e-9)
                 {
                     dokument.Sichere("Drehen setzen");

@@ -96,16 +96,16 @@
     <!-- ============ Menueleiste (eigene deutsche Bezeichnungen, M5-b: echte Einträge) ============ -->
     <Menu DockPanel.Dock="Top" Height="26" Background="#1C1C1C" FontSize="12">
       <MenuItem Header="Datei">
-        <MenuItem Header="Neu" InputGesture="Ctrl+N" Click="OnNeu"/>
-        <MenuItem Header="Öffnen …" InputGesture="Ctrl+O" Click="OnOeffnen"/>
-        <MenuItem Header="Speichern" InputGesture="Ctrl+S" Click="OnSpeichern"/>
+        <MenuItem Header="Neu" Click="OnNeu"/>
+        <MenuItem Header="Öffnen …" Click="OnOeffnen"/>
+        <MenuItem Header="Speichern" Click="OnSpeichern"/>
         <Separator/>
         <MenuItem Header="Beenden" Click="OnBeenden"/>
       </MenuItem>
       <MenuItem Header="Bearbeiten">
-        <MenuItem x:Name="MenuUndo" Header="Rückgängig" InputGesture="Ctrl+Z" Click="OnUndo"/>
-        <MenuItem x:Name="MenuRedo" Header="Wiederholen" InputGesture="Ctrl+Y" Click="OnRedo"/>
-        <MenuItem x:Name="MenuLoeschen" Header="Auswahl löschen" InputGesture="Entf" Click="OnAuswahlLoeschen"/>
+        <MenuItem x:Name="MenuUndo" Header="Rückgängig" Click="OnUndo"/>
+        <MenuItem x:Name="MenuRedo" Header="Wiederholen" Click="OnRedo"/>
+        <MenuItem x:Name="MenuLoeschen" Header="Auswahl löschen" Click="OnAuswahlLoeschen"/>
       </MenuItem>
       <MenuItem Header="Anordnen"/>
       <MenuItem Header="Laserwerkzeuge"/>
