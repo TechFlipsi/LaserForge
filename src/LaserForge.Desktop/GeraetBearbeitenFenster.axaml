@@ -1,0 +1,33 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.avaloniaui.com/schema/design"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d" d:DesignWidth="420" d:DesignHeight="420"
+        x:Class="LaserForge.Desktop.GeraetBearbeitenFenster"
+        Title="Gerät bearbeiten" Width="420" Height="430" CanResize="False"
+        WindowStartupLocation="CenterOwner" Background="#1e1e1e">
+  <Grid Margin="14,12,14,12" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto,*">
+    <TextBlock Grid.Row="0" Text="Name" Foreground="#B8B8B8" FontSize="12"/>
+    <TextBox Grid.Row="1" x:Name="NameBox" Margin="0,3,0,9" Background="#161616" Foreground="#E8E8E8" BorderBrush="#3a3a3a"/>
+
+    <TextBlock Grid.Row="2" Text="Anschluss" Foreground="#B8B8B8" FontSize="12"/>
+    <ComboBox Grid.Row="3" x:Name="PortCombo" Width="220" HorizontalAlignment="Left" Margin="0,3,0,9"
+              Background="#161616" Foreground="#E8E8E8" IsEditable="True"/>
+
+    <TextBlock Grid.Row="4" Text="Baud" Foreground="#B8B8B8" FontSize="12"/>
+    <ComboBox Grid.Row="5" x:Name="BaudCombo" Width="220" HorizontalAlignment="Left" Margin="0,3,0,13"
+              Background="#161616" Foreground="#E8E8E8" SelectedIndex="0">
+      <ComboBoxItem Content="115200"/>
+      <ComboBoxItem Content="9600"/>
+      <ComboBoxItem Content="57600"/>
+      <ComboBoxItem Content="250000"/>
+    </ComboBox>
+
+    <CheckBox Grid.Row="6" x:Name="HomeBox" Content="Home beim Start" Foreground="#C8C8C8" FontSize="12"/>
+
+    <StackPanel Grid.Row="7" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Bottom" Spacing="8">
+      <Button x:Name="OkBtn" Content="OK" Width="86" Height="26" Background="#26618c" Foreground="#ffffff" Click="OnOk"/>
+      <Button Content="Abbrechen" Width="86" Height="26" Click="OnAbbrechen"/>
+    </StackPanel>
+  </Grid>
+</Window>

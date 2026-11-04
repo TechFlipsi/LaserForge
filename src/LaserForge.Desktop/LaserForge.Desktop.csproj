@@ -11,5 +11,6 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\LaserForge.Core\LaserForge.Core.csproj" />
+    <ProjectReference Include="..\LaserForge.Devices\LaserForge.Devices.csproj" />
   </ItemGroup>
 </Project>

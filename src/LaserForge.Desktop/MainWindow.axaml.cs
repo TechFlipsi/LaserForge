@@ -377,6 +377,28 @@ public partial class MainWindow : Window
     private void OnSpeichern(object? s, RoutedEventArgs e) => SpeichernDialog();
     private void OnBeenden(object? s, RoutedEventArgs e) => Close();
 
+    /// <summary>Geraete-Dialog oeffnen; nach OK das aktive Geraet in das Maschinen-Panel uebernehmen.</summary>
+    private async void OnGeraeteDialog(object? s, RoutedEventArgs e)
+    {
+        var fenster = new GeraeteFenster();
+        await fenster.ShowDialog(this);
+        if (!fenster.Bestaetigt) return;
+        var g = fenster.AktivesGeraet;
+        PortCombo.Items.Clear();
+        foreach (var x in fenster.Geraete)
+            PortCombo.Items.Add(new ComboBoxItem { Content = $"{x.Name} ({x.Anschluss})" });
+        if (g is not null)
+        {
+            var items = PortCombo.Items.OfType<ComboBoxItem>().ToList();
+            var treffer = items.FirstOrDefault(i =>
+                i.Content is string t && t.StartsWith(g.Name + " (", StringComparison.Ordinal));
+            if (treffer is not null) PortCombo.SelectedItem = treffer;
+            ProtoCombo.Items.Clear();
+            ProtoCombo.Items.Add(new ComboBoxItem { Content = g.Protokoll });
+            ProtoCombo.SelectedIndex = 0;
+        }
+    }
+
     /// <summary>Neues leeres Projekt (Layer 00/01 wie die Bibel).</summary>
     private void NeuProjekt()
     {

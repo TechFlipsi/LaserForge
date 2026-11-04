@@ -108,7 +108,9 @@
         <MenuItem x:Name="MenuLoeschen" Header="Auswahl löschen" Click="OnAuswahlLoeschen"/>
       </MenuItem>
       <MenuItem Header="Anordnen"/>
-      <MenuItem Header="Laserwerkzeuge"/>
+      <MenuItem Header="Laserwerkzeuge">
+        <MenuItem Header="Geräte …" Click="OnGeraeteDialog"/>
+      </MenuItem>
       <MenuItem Header="Web-Werkzeuge"/>
       <MenuItem Header="Fenster"/>
       <MenuItem Header="Sprache"/>
@@ -497,10 +499,10 @@
           <!-- Geräte-Zeile -->
           <StackPanel Grid.Row="9" Orientation="Horizontal" Spacing="6" Margin="0,7,0,2">
             <TextBlock Text="Gerät:" FontSize="11" Foreground="#B8B8B8" VerticalAlignment="Center"/>
-            <ComboBox Width="180" Height="24" FontSize="11" SelectedIndex="0">
+            <ComboBox x:Name="PortCombo" Width="180" Height="24" FontSize="11" SelectedIndex="0">
               <ComboBoxItem Content="COM3"/>
             </ComboBox>
-            <ComboBox Width="150" Height="24" FontSize="11" SelectedIndex="0">
+            <ComboBox x:Name="ProtoCombo" Width="150" Height="24" FontSize="11" SelectedIndex="0">
               <ComboBoxItem Content="GRBL"/>
             </ComboBox>
           </StackPanel>

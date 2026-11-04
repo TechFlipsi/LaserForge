@@ -26,6 +26,9 @@ public static class StartEinstellung
     /// <summary>QA: 0,9 s nach dem Zug einmal Rückgängig (Klone-Stapel-Beweis).</summary>
     public static bool UndoQA;
 
+    /// <summary>QA: Geräte-Dialog als Startfenster (Dialog-Nachweis ohne Menü-Klick).</summary>
+    public static bool GeraeteDialog;
+
     /// <summary>Verzögerung der QA-Automatik (ms) — zum Rhythmus-Machen der Capture.</summary>
     public static int WarteMs = 700;
 }
@@ -64,6 +67,10 @@ internal static class Program
             else if (string.Equals(a, "--qa-undo", StringComparison.OrdinalIgnoreCase))
             {
                 StartEinstellung.UndoQA = true;
+            }
+            else if (string.Equals(a, "--geraete-dialog", StringComparison.OrdinalIgnoreCase))
+            {
+                StartEinstellung.GeraeteDialog = true;
             }
         }
         BuildAvaloniaApp().StartWithClassicDesktopLifetime(args);

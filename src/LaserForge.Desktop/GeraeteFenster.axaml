@@ -1,0 +1,54 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:model="clr-namespace:LaserForge.Core.Geraete;assembly=LaserForge.Core"
+        mc:Ignorable="d"
+        x:Class="LaserForge.Desktop.GeraeteFenster"
+        Title="Geräte" Width="620" Height="560" CanResize="False"
+        WindowStartupLocation="CenterOwner" Background="#1e1e1e">
+  <Grid Margin="0" RowDefinitions="*,Auto">
+    <!-- Geraete-Liste (Zeile: Icon-Badge + Name + „Protokoll | Sprache") -->
+    <ListBox Grid.Row="0" x:Name="Liste" Margin="10,10,10,6" Background="#161616"
+             BorderBrush="#3a3a3a" Foreground="#E8E8E8" SelectionMode="Single,Toggle">
+      <ListBox.ItemTemplate>
+        <DataTemplate x:DataType="model:Geraet">
+          <StackPanel Orientation="Horizontal" Spacing="10" Margin="4">
+            <Border Width="34" Height="34" CornerRadius="4" Background="#0c0c0c"
+                    BorderBrush="#3a3a3a" BorderThickness="1" VerticalAlignment="Center">
+              <TextBlock Text="LF" FontSize="13" FontWeight="Bold" Foreground="#E8E8E8"
+                         HorizontalAlignment="Center" VerticalAlignment="Center"/>
+            </Border>
+            <StackPanel Spacing="1" VerticalAlignment="Center">
+              <TextBlock Text="{Binding Name}" FontSize="14" Foreground="#FFFFFF"/>
+              <TextBlock Text="{Binding TypZeile}" FontSize="11" Foreground="#AAAAAA"/>
+            </StackPanel>
+            <TextBlock Margin="10,0,0,0" VerticalAlignment="Center" Foreground="#8FCB8F" FontSize="11"
+                       Text="Standard" IsVisible="{Binding IstStandard}"/>
+          </StackPanel>
+        </DataTemplate>
+      </ListBox.ItemTemplate>
+    </ListBox>
+
+    <!-- Buttons: 2 Reihen (Paritaet zum Original-Dialog) -->
+    <StackPanel Grid.Row="1" Margin="10,4,10,10" Spacing="10">
+      <Grid ColumnDefinitions="*,10,*,10,*,10,*">
+        <Button Grid.Column="0" Height="26" Content="Laser suchen" Click="OnLaserSuchen"/>
+        <Button Grid.Column="2" Height="26" Content="Manuell erstellen" Click="OnManuellErstellen"/>
+        <Button Grid.Column="4" Height="26" Content="LightBurn Bridge" IsEnabled="False" ToolTip.Tip="Kommt mit der Bridge-Integration (Transport-TCP)."/>
+        <Button Grid.Column="6" Height="26" Content="Importieren" Click="OnImportieren"/>
+      </Grid>
+      <Grid ColumnDefinitions="*,10,*,10,*,10,*">
+        <Button Grid.Column="0" Height="26" Content="Als Standard setzen" Click="OnAlsStandard"/>
+        <Button Grid.Column="2" Height="26" Content="Bearbeiten" Click="OnBearbeiten"/>
+        <Button Grid.Column="4" Height="26" Content="Entfernen" Click="OnEntfernen"/>
+        <Button Grid.Column="6" Height="26" Content="Exportieren" Click="OnExportieren"/>
+      </Grid>
+      <Grid ColumnDefinitions="*,Auto,Auto" Margin="0,2,0,0">
+        <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8">
+          <Button x:Name="OkBtn" Width="86" Height="26" Content="OK" Background="#26618c" Foreground="#ffffff" Click="OnOk"/>
+          <Button Width="86" Height="26" Content="Abbrechen" Click="OnAbbrechen"/>
+        </StackPanel>
+      </Grid>
+    </StackPanel>
+  </Grid>
+</Window>
