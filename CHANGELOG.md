@@ -1,6 +1,6 @@
 # Änderungen
 
-## Unreleased (04.11.2026 — M7.5 API-Parität + Geräte-Dialog + Geräte-Konfig am Laser)
+## v0.2.0 — 04.11.2026 (API-Parität + Geräte-Dialog + Geräte-Konfig am Laser + Job-Engine)
 - **Geraet-Modell + Persistenz** (Core): geraete.json je Benutzer; **LightBurn-Import**:
   prefs.ini (JSON) DeviceList → Anschluss/Baud/Workspace/Jog (mm/s→mm/min ×60) /Spiegel/StartHome;
   Secret-/RestAPI-Felder bewusst NICHT übernommen.
