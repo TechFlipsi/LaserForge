@@ -2,6 +2,8 @@ using System.Text.Json.Nodes;
 using LaserForge.Core.Einstellungen;
 using LaserForge.Core.Formate;
 using LaserForge.Core.Formen;
+using LaserForge.Core.Geraete;
+using LaserForge.Devices.Grbl;
 namespace LaserForge.Api.Rest;
 
 /// <summary>
@@ -109,7 +111,7 @@ public static class Router
 {
     public static (int Code, string Grund, string Koerper) Behandeln(
         string methode, string pfad, string? bearer, bool loopback, ApiZustand zustand,
-        string koerperText = "", string xDateiname = "")
+        string koerperText = "", string xDateiname = "", MaschinenSitzung? maschine = null)
     {
         if (!pfad.StartsWith("/api/", StringComparison.Ordinal))
         {
@@ -187,7 +189,8 @@ public static class Router
             return (202, "Angenommen", JsonObj(("status", "accepted"), ("filename", fn)).ToJsonString());
         }
 
-        // M7.5: Maschinennahe Steuerrouten — Route paritätisch, ehrliches Gate bis zur Devices-Integration.
+        // Maschinennahe Steuerrouten (M8): ECHTE Fahrt über die Geräte-Sitzung — mit ehrlicher
+        // Fehler-Ebene (Port belegt / Gerät nicht verbunden), sonst bewusstem Gate im Testbetrieb.
         switch (pfadQuergelesen)
         {
             case "/api/jog" when methode == "POST":
@@ -198,9 +201,8 @@ public static class Router
             case "/api/job/start" when methode == "POST":
             case "/api/job/pause" when methode == "POST":
             case "/api/job/stop" when methode == "POST":
-                return MaschinenGate(zustand);
             case "/api/jog/stop" when methode == "POST":
-                return (200, "OK", JsonObj(("ok", true)).ToJsonString());
+                return MaschinenSende(maschine, zustand, pfadQuergelesen, koerperText);
         }
 
         // M7.5: Spindel/Kuehlung/Vakuum/Overrides/NullPunkt/PositioNeu — Dienst-Zustand (ehrlich).
@@ -250,16 +252,14 @@ public static class Router
             "/api/status" => Gruen(MaschineObj(zustand)),
             "/api/overlay" => Gruen(OverlayObj(zustand)),
             "/api/overlay/metadata" => (404, "Nicht gefunden", JsonObj(("error", "Kein Kamera-Overlay geladen.")).ToJsonString()),
-            "/api/position" => Gruen(JsonObj(
-                ("machine", PunktObj(0, 0, 0)),
-                ("workpiece", PunktObj(-zustand.ArbeitNullX, -zustand.ArbeitNullY, -zustand.ArbeitNullZ)))),
+            "/api/position" => PositionAusMaschine(maschine, zustand),
             "/api/units" => Gruen(JsonObj(("distance_units", "mm"), ("units", "mm/min"))),
             "/api/layers" => Gruen(SchichtenObj(zustand)),
             "/api/jog/settings" => Gruen(JogEinstellungenObj(zustand)),
             "/api/goto/saved" => Gruen(JsonObj(("positions", PositionsListe(zustand)))),
             "/api/material-library" => Gruen(JsonObj(
                 ("product", "lightburn"), ("name", ""), ("filename", ""), ("entries", NeueListe()))),
-            "/api/events/poll" => Gruen(PollObjekt(zustand)),
+            "/api/events/poll" => Gruen(PollObjekt(zustand, maschine)),
             "/api/_internal/standby" => Gruen(JsonObj(("ok", true))),
             "/api/cuts" => Gruen(SchnitteeinstellungenObj(zustand)),
             "/api/project" => Gruen(ProjektObj(zustand)),
@@ -305,14 +305,20 @@ public static class Router
         ("xy_speed", z.JogXyTempo), ("z_speed", z.JogZTempo),
         ("units", "mm/min"), ("distance_units", "mm"));
 
-    private static JsonObject PollObjekt(ApiZustand z)
+    private static JsonObject PollObjekt(ApiZustand z, MaschinenSitzung? maschine = null)
     {
         JsonObject job = JsonObj(("state", z.JobZustand));
         if (z.JobZustand == "running") job["progress"] = z.JobFortschritt;
+        var st = maschine?.LetzteStatus;
+        if (st is null && maschine is not null) st = maschine.FrischePosition();
         return JsonObj(
-            ("position", JsonObj(
-                ("machine", PunktObj(0, 0, 0)),
-                ("workpiece", PunktObj(-z.ArbeitNullX, -z.ArbeitNullY, -z.ArbeitNullZ)))),
+            ("position", st is null
+                ? JsonObj(
+                    ("machine", PunktObj(0, 0, 0)),
+                    ("workpiece", PunktObj(-z.ArbeitNullX, -z.ArbeitNullY, -z.ArbeitNullZ)))
+                : JsonObj(
+                    ("machine", PunktObj(st.MaschineX, st.MaschineY, st.MaschineZ)),
+                    ("workpiece", PunktObj(st.WerkX, st.WerkY, st.WerkZ)))),
             ("job", job),
             ("overrides", JsonObj(("speed_percent", z.OverrideSpeedProzent), ("power_percent", z.OverridePowerProzent))),
             ("aux", AuxObj(z)),
@@ -328,14 +334,177 @@ public static class Router
         return arr;
     }
 
-    /// <summary>Ehrlicher Gate-Koerper fuer maschinennahe Routen: Route existiert, Ansteuerung folgt mit der Devices-Integration.</summary>
-    private static (int, string, string) MaschinenGate(ApiZustand z)
+    /// <summary>
+    /// Maschinenrouten M8: über die Sitzung zum aktiven Gerät — echtes Senden (Jog/Home/Zero/Goto),
+    /// ehrliche Fehler-Körper (Port belegt/port, Maschinen-Begründung), Job-Routen brauchen den
+    /// Pipeline-Runner (bewusstes Gate bis dahin). Ohne Sitzung (Testbetrieb/CLI ohne Device-Layer):
+    /// device_integration_pending-Gate.
+    /// </summary>
+    private static (int, string, string) MaschinenSende(
+        MaschinenSitzung? maschine, ApiZustand zustand, string pfad, string koerperText)
     {
-        if (!z.Verbunden)
-            return (409, "Konflikt", JsonObj(("error", "Maschine nicht verbunden."), ("code", "not_connected")).ToJsonString());
-        return (409, "Konflikt", JsonObj(
-            ("error", "Route paritaetisch vorhanden; Maschinenansteuerung kommt mit der Devices-Integration."),
-            ("code", "device_integration_pending")).ToJsonString());
+        if (maschine is null)
+            return (409, "Konflikt", JsonObj(
+                ("error", "Route paritaetisch vorhanden; Maschinenansteuerung kommt mit der Devices-Integration."),
+                ("code", "device_integration_pending")).ToJsonString());
+
+        if (pfad == "/api/job/start" || pfad == "/api/job/pause" || pfad == "/api/job/stop")
+        {
+            if (maschine.VerbundenPort is null)
+                return (409, "Konflikt", JsonObj(("error", "Maschine nicht verbunden."), ("code", "not_connected")).ToJsonString());
+            return (409, "Konflikt", JsonObj(
+                ("error", "Job-Aufrufe brauchen den Pipeline-Runner am API-Dienst."),
+                ("code", "job_engine_pending")).ToJsonString());
+        }
+
+        // Aktives Gerät (Standard-Gerät aus der Gerätewartung) — ohne Anschluss kein Senden.
+        var gerListe = GeraeteSpeicher.Laden();
+        var ger = gerListe.FirstOrDefault(x => x.IstStandard) ?? gerListe.FirstOrDefault();
+        if (ger is null || ger.Anschluss.Length == 0)
+            return (409, "Konflikt", JsonObj(("error", "Kein Gerät mit Anschluss konfiguriert (Geräte …)."), ("code", "no_device")).ToJsonString());
+
+        if (!maschine.Oeffnen(ger))
+        {
+            var belegt = maschine.PortFehler?.Contains("Access", StringComparison.OrdinalIgnoreCase) == true
+                || maschine.PortFehler?.Contains("denied", StringComparison.OrdinalIgnoreCase) == true;
+            return (409, "Konflikt", JsonObj(
+                ("error", "Port " + ger.Anschluss + " nicht verfügbar: " + (maschine.PortFehler ?? "unbekannt")),
+                ("code", belegt ? "port_busy" : "port_error")).ToJsonString());
+        }
+
+        var verbindung = maschine.Verbindung!;
+        if (pfad == "/api/jog/stop")
+        {
+            maschine.JogAbbruch();   // Realtime 0x85 (Jog-Abbruch, GRBL-Paritaet)
+            return (200, "OK", JsonObj(("ok", true), ("aktion", pfad)).ToJsonString());
+        }
+        bool gut; string hinweis;
+        switch (pfad)
+        {
+            case "/api/jog":
+            {
+                var achse = CharFeld(koerperText, "axis") ?? "X";
+                if (achse is not ("X" or "Y" or "Z" or "x" or "y" or "z"))
+                    return (422, "Ungueltig", JsonObj(("error", "axis muss X, Y oder Z sein.")).ToJsonString());
+                var mm = ParseDouble(koerperText, "distance");
+                if (mm is null || Math.Abs(mm.Value) == 0)
+                    return (422, "Ungueltig", JsonObj(("error", "distance erwartet (mm, +/-).")).ToJsonString());
+                var speed = ParseDouble(koerperText, "speed") ?? ger.JogXyTempo;
+                if (achse is "Z" or "z") speed = ParseDouble(koerperText, "speed") ?? ger.JogZTempo;
+                var achseGross = achse.ToString()!.ToUpperInvariant();
+                gut = verbindung.Joggen(achseGross, mm.Value, speed);
+                hinweis = gut ? "Jog gesendet" : "Jog verweigert (ok fehlt)";
+                break;
+            }
+            case "/api/home":
+                gut = false; hinweis = "";
+                try
+                {
+                    verbindung.Transport.SchreibenZeile("$H");
+                    gut = verbindung.WarteAufOkLange(8000);
+                    hinweis = gut ? "Homing gestartet" : "Homing: ok fehlt (ALARM prüfen)";
+                }
+                catch (Exception ex) { hinweis = "Homing-Fehler: " + ex.Message; gut = false; }
+                break;
+            case "/api/zero":
+            {
+                var mitZ = BoolFeld(koerperText, "z");
+                gut = false; hinweis = "";
+                try
+                {
+                    verbindung.Transport.SchreibenZeile(mitZ ? "G92 X0 Y0 Z0" : "G92 X0 Y0");
+                    gut = verbindung.WarteAufOkLange(2000);
+                    hinweis = gut ? "Arbeitsursprung gesetzt" : "ok fehlt (Nullpunkt)";
+                }
+                catch (Exception ex) { hinweis = "Zero-Fehler: " + ex.Message; gut = false; }
+                break;
+            }
+            case "/api/goto":
+            {
+                var x = ParseDouble(koerperText, "x");
+                var y = ParseDouble(koerperText, "y");
+                if (x is null || y is null)
+                    return (422, "Ungueltig", JsonObj(("error", "x und y erwartet (mm).")).ToJsonString());
+                var z = ParseDouble(koerperText, "z");
+                gut = false; hinweis = "";
+                try
+                {
+                    var E = System.Globalization.CultureInfo.InvariantCulture;
+                    verbindung.Transport.SchreibenZeile(
+                        "G0 X" + x.Value.ToString("0.###", E) + " Y" + y.Value.ToString("0.###", E) +
+                        (z is not null ? " Z" + z.Value.ToString("0.###", E) : ""));
+                    gut = verbindung.WarteAufOkLange(30000); // Fahrt kann dauern
+                    hinweis = gut ? "Fahrt angestoßen" : "ok fehlt (Fahrt)";
+                }
+                catch (Exception ex) { hinweis = "Goto-Fehler: " + ex.Message; gut = false; }
+                break;
+            }
+            case "/api/goto/saved/go":
+            {
+                var name = CharFeld(koerperText, "name");
+                var ziel = zustand.GespeichertePositionen
+                    .FirstOrDefault(p => name is null || p.Name.Equals(name, StringComparison.OrdinalIgnoreCase));
+                if (ziel is null)
+                    return (404, "Nicht gefunden", JsonObj(("error", "Gespeicherte Position nicht gefunden.")).ToJsonString());
+                gut = false; hinweis = "";
+                try
+                {
+                    var E = System.Globalization.CultureInfo.InvariantCulture;
+                    verbindung.Transport.SchreibenZeile(
+                        "G0 X" + ziel.X.ToString("0.###", E) + " Y" + ziel.Y.ToString("0.###", E) +
+                        " Z" + ziel.Z.ToString("0.###", E));
+                    gut = true; // ok kommt nach Fahrt; Sende-Weg beweisbar
+                    hinweis = "Fahrt zu '" + ziel.Name + "' gesendet";
+                }
+                catch (Exception ex) { hinweis = "Goto-Fehler: " + ex.Message; gut = false; }
+                break;
+            }
+            default:
+                return (404, "Nicht gefunden", JsonObj(("error", "Unbekannte Maschinenroute.")).ToJsonString());
+        }
+
+        if (!gut)
+            return (500, "Fehler", JsonObj(("error", hinweis), ("code", "machine_error")).ToJsonString());
+        var st = maschine.FrischePosition();
+        return (200, "OK", JsonObj(
+            ("ok", true), ("aktion", pfad), ("hinweis", hinweis),
+            ("position", st is null ? null : PositionObj(st))).ToJsonString());
+    }
+
+
+    private static JsonObject PositionObj(GrblStatus st) => JsonObj(
+        ("machine", PunktObj(st.MaschineX, st.MaschineY, st.MaschineZ)),
+        ("workpiece", PunktObj(st.WerkX, st.WerkY, st.WerkZ)));
+
+    private static (int, string, string) PositionAusMaschine(MaschinenSitzung? maschine, ApiZustand z)
+    {
+        var st = maschine?.LetzteStatus;
+        if (st is null && maschine is not null) st = maschine.FrischePosition();
+        return (200, "OK", JsonObj(
+            ("machine", st is null ? PunktObj(0, 0, 0) : PunktObj(st.MaschineX, st.MaschineY, st.MaschineZ)),
+            ("workpiece", st is null
+                ? PunktObj(-z.ArbeitNullX, -z.ArbeitNullY, -z.ArbeitNullZ)
+                : PunktObj(st.WerkX, st.WerkY, st.WerkZ))).ToJsonString());
+    }
+
+    private static string? CharFeld(string text, string schluessel)
+    {
+        try
+        {
+            if (System.Text.Json.Nodes.JsonNode.Parse(text) is not System.Text.Json.Nodes.JsonObject o) return null;
+            return o[schluessel] is System.Text.Json.Nodes.JsonValue v && v.TryGetValue(out string s) ? s : null;
+        }
+        catch { return null; }
+    }
+
+    private static bool BoolFeld(string text, string schluessel)
+    {
+        try
+        {
+            if (System.Text.Json.Nodes.JsonNode.Parse(text) is not System.Text.Json.Nodes.JsonObject o) return false;
+            return o[schluessel] is System.Text.Json.Nodes.JsonValue v && v.TryGetValue(out bool b) && b;
+        }
+        catch { return false; }
     }
 
     /// <summary>Zahlenwert aus JSON-Koerper lesen (leerer/ungueltiger Koerper = null).</summary>

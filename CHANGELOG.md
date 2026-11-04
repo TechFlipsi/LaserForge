@@ -15,6 +15,11 @@
   --konfig-port=COMx` + Status-Datei; Fehler-Route bewiesen (belegter Port → saubere Meldung).
 - MainWindow: Geräte-Zeile = Laser-Auswahl (Auswahl wechselt das aktive Gerät inkl. Persistenz);
   Menü „Geräte …" füllt die Zeile nach OK.
+- **Maschinenrouten M8 — echte Geräte-Ansteuerung**: jog/jog/stop/home/zero/goto/goto-saved-go
+  senden jetzt an den Laser (MaschinenSitzung → aktives Gerät, serieller Transport; Position
+  aus echtem GRBL-Status in position/events-poll). Fehler-Ebene ehrlich: port_busy (LB hält
+  den Port) / port_error / not_connected / no_device; Job-Routen weiter in job_engine_pending
+  (Pipeline-Runner folgt). End-to-End-Tests bis zur Sendezeile ($J=/G0/$H/roh-0x85).
 - Desktop-Referenz auf LaserForge.Devices (Ports-Scan); +8 Tests (82/82 grün am PC).
 - REST: +14 Routen nach der LightBurn-2.2-API (offizielle Spec + Befunde aus der Clean-Room-Analyse 25.10./04.11.):
   `jog/settings`(POST), `position`/`events/poll` mit Nullpunkt-Arbeitsbereich, `goto/saved`(Liste), `goto/saved/add`,

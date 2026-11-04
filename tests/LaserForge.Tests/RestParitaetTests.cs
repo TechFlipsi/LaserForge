@@ -84,12 +84,13 @@ public class RestParitaetTests
     }
 
     [Fact]
-    public void Maschinenrouten_Ehrlicher_Gate()
+    public void Maschinenrouten_Ohne_Sitzung_Ehrliches_Gate()
     {
         var z = Zustand();
+        // Ohne MaschinenSitzung (API-Dienst ohne Device-Layer): bewusstes Gate, Route paritätisch.
         var (codeAus, _, koerperAus) = Router.Behandeln("POST", "/api/jog", Bear(z), true, z);
         Assert.Equal(409, codeAus);
-        Assert.Contains("not_connected", koerperAus);
+        Assert.Contains("device_integration_pending", koerperAus);
         z.Verbunden = true;
         var (codeEin, _, koerperEin) = Router.Behandeln("POST", "/api/job/start", Bear(z), true, z);
         Assert.Equal(409, codeEin);
@@ -100,9 +101,11 @@ public class RestParitaetTests
     public void Jog_Stop_Immer_OK()
     {
         var z = Zustand();
+        // Ohne MaschinenSitzung: bewusstes Gate (M8); der echte Stop-Weg ist in RestMaschineTests
+        // (roh-0x85 über die Transportkette) bewiesen.
         var (code, _, koerper) = Router.Behandeln("POST", "/api/jog/stop", Bear(z), true, z);
-        Assert.Equal(200, code);
-        Assert.Contains("ok", koerper);
+        Assert.Equal(409, code);
+        Assert.Contains("device_integration_pending", koerper);
     }
 
     [Fact]
