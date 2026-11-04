@@ -18,6 +18,7 @@ Stand: 25.10.2026 (Initial) · Nach jeder Phasen-Fertigstellung Statusspalte pfl
 | `docs/recherche/grbl-gcode-flavor.md` | GCode-Erzeugungs-Spec **GRBL 1.1** (M3/M4-Umsetzung), verifiziert gegen das GRBL-Wiki (gnea/grbl), Stand 25.10.2026 |
 | `/mnt/truenas/Daten/jarvis-files/Fabian/LightBurn/references/craft-anything-lightburn-20261104.md` | **Craft-Anything-Deep-Befund 04.11.2026:** ~11 code-only Routen (jog/jog/stop/home/zero/zero/edit/goto/goto saved add/go/spindle/coolant/vacuum/aux/override/job/bind/standby), Interne `Forbidden … localhost`-Gate-Zeile, PollSnapshot-Schemata, Kamera-Snapshot-URLs, WebAPI-Flavor-Ressourcen (:/res/webapi/*.json), 49.769 Funktionen/5.490 Imports/83 Libraries |
 | `docs/recherche/kenntnisse-abweichungen-20261104.md` | **Abweichungs-Matrix 04.11.2026** (Kenntnisstand↔LaserForge, 246-Icon-Katalog, QSS-Theme-Werte, Icon-Redraw-Plan + Vendor-Logo-Ausklammerung) |
+| `docs/recherche/funktionsumfang-abgleich-20261104.md` | **Funktionsumfang-Abgleich 04.11.2026:** Offizielle 2.2-Feature-Liste + voller 179-Seiten-Reference-Index (Sitemap) ↔ Binary-Scan — Deckungstabelle + 7 SCAN-NEU-Klassen + Application-Theme-Verifizierung (hell/dunkel/System) |
 
 **Regeln:**
 1. Funktionsparität ≠ Quelltext-Parität: **niemals** LightBurn-Code/Assets/Strings kopieren — eigene Implementierung, eigene Icons, eigene (deutsche) Texte.
