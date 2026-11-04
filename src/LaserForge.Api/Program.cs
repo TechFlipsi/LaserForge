@@ -48,11 +48,15 @@ void Behandeln(TcpClient client)
         foreach (var z in sb.ToString().Split("\r\n"))
             if (z.StartsWith("Authorization: Bearer ", StringComparison.OrdinalIgnoreCase))
                 bearer = z[21..].Trim();
+        var xDateiname = "";
+        foreach (var z in sb.ToString().Split("\r\n"))
+            if (z.StartsWith("X-Filename:", StringComparison.OrdinalIgnoreCase))
+                xDateiname = z["X-Filename:".Length..].Trim();
         var loopback = client.Client.RemoteEndPoint is IPEndPoint ip && IPAddress.IsLoopback(ip.Address);
         var alles = sb.ToString();
         var trennIx = alles.IndexOf("\r\n\r\n");
         var koerperText = trennIx >= 0 ? alles[(trennIx + 4)..] : "";
-        var (code, grund, koerper) = Router.Behandeln(methode, pfad, bearer, loopback, zustand, koerperText);
+        var (code, grund, koerper) = Router.Behandeln(methode, pfad, bearer, loopback, zustand, koerperText, xDateiname);
         if (koerper == "SSE-STREAM")
         {
             // Rohen SSE-Strom schreiben (Protokoll: text/event-stream)

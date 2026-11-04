@@ -14,6 +14,24 @@ public sealed class ApiZustand
     public string GeraeteName { get; set; } = "GRBL";
     public bool Verbunden { get; set; }
 
+    // --- M7.5 Parität: Dienst-Zustand nach den PollSnapshot-Schemata (overrides/aux/job/settings) ---
+    public string JobZustand { get; set; } = "idle";            // idle | running | paused
+    public double JobFortschritt { get; set; } = 0;             // 0..100
+    public int OverrideSpeedProzent { get; set; } = 100;        // GRBL-Override-Bereich 10..200
+    public int OverridePowerProzent { get; set; } = 100;
+    public bool SpindelAn { get; set; }
+    public int SpindelRpm { get; set; }
+    public bool KuehlungAn { get; set; }
+    public bool VakuumAn { get; set; }
+    public double JogXyAbstand { get; set; } = 10.0;
+    public double JogZAbstand { get; set; } = 10.0;
+    public double JogXyTempo { get; set; } = 6000.0;
+    public double JogZTempo { get; set; } = 600.0;
+    public double ArbeitNullX { get; set; }
+    public double ArbeitNullY { get; set; }
+    public double ArbeitNullZ { get; set; }
+    public List<GespeichertePosition> GespeichertePositionen { get; set; } = new();
+
     /// <summary>Layer-Palette (Protokollfarben wie im REA-Befund belegt).</summary>
     public static string PaletteFarbe(int index) =>
         index switch
@@ -73,6 +91,15 @@ public sealed class ApiZustand
 }
 
 
+/// <summary>Gespeicherte Position (goto/saved/add, Protokoll: name/x/y/z).</summary>
+public sealed class GespeichertePosition
+{
+    public string Name { get; set; } = "";
+    public double X { get; set; }
+    public double Y { get; set; }
+    public double Z { get; set; }
+}
+
 /// <summary>
 /// Protokoll-Router (Paritaet auf die LightBurn-2.2-API-Semantik, eigene Umsetzung).
 /// Testbar ohne Netz: Behandeln(methode, pfad, bearer, loopback, zustand) = (Code, Grund, Koerper).
@@ -81,7 +108,8 @@ public sealed class ApiZustand
 public static class Router
 {
     public static (int Code, string Grund, string Koerper) Behandeln(
-        string methode, string pfad, string? bearer, bool loopback, ApiZustand zustand, string koerperText = "")
+        string methode, string pfad, string? bearer, bool loopback, ApiZustand zustand,
+        string koerperText = "", string xDateiname = "")
     {
         if (!pfad.StartsWith("/api/", StringComparison.Ordinal))
         {
@@ -111,6 +139,21 @@ public static class Router
             };
             return (200, "OK", JsonObj(("secret", secret), ("hinweis", "Paarung erstellt; Token = HMAC ueber Minutenfenster.")).ToJsonString());
         }
+        // M7.5: /api/bind — Zweitanbindung (nur Loopback, identisches Pairing-Ergebnis wie connect).
+        if (methode == "POST" && pfadQuergelesen == "/api/bind")
+        {
+            if (!loopback)
+                return (403, "Verboten", JsonObj(("error", "api/bind ist nur ueber Loopback erlaubt.")).ToJsonString());
+            var secretBindung = ZufallsSecret.Erzeugen();
+            zustand.Paarungen[secretBindung] = new Paarung
+            {
+                Anwendungsname = "Bindung" + zustand.Paarungen.Count,
+                Kapazitaeten = new List<string> { "state", "project" },
+                Secret = secretBindung,
+                GekoppeltAm = DateTimeOffset.UtcNow.ToUnixTimeSeconds(),
+            };
+            return (200, "OK", JsonObj(("secret", secretBindung)).ToJsonString());
+        }
 
         // Alle API-Endpunkte brauchen einen gueltigen Minuten-Bearer (aktuelles Fenster + Vorminute).
         Paarung? paarung = null;
@@ -135,6 +178,65 @@ public static class Router
             return (200, "OK", SchnittObj(s).ToJsonString());
         }
 
+        // M7.5: /api/file/open — File→Open-Semantik: Projekt GANZ ersetzen, 202, Ergebnis via SSE.
+        // (Protokoll: 202 sofort; success nur bei nativen Formaten verlaesslich — Loader folgt in M-next.)
+        if (methode == "POST" && pfadQuergelesen == "/api/file/open")
+        {
+            zustand.Projekt = new Projekt();
+            var fn = xDateiname.Length > 0 ? System.IO.Path.GetFileName(xDateiname) : "upload.lbrn2";
+            return (202, "Angenommen", JsonObj(("status", "accepted"), ("filename", fn)).ToJsonString());
+        }
+
+        // M7.5: Maschinennahe Steuerrouten — Route paritätisch, ehrliches Gate bis zur Devices-Integration.
+        switch (pfadQuergelesen)
+        {
+            case "/api/jog" when methode == "POST":
+            case "/api/home" when methode == "POST":
+            case "/api/zero" when methode == "POST":
+            case "/api/goto" when methode == "POST":
+            case "/api/goto/saved/go" when methode == "POST":
+            case "/api/job/start" when methode == "POST":
+            case "/api/job/pause" when methode == "POST":
+            case "/api/job/stop" when methode == "POST":
+                return MaschinenGate(zustand);
+            case "/api/jog/stop" when methode == "POST":
+                return (200, "OK", JsonObj(("ok", true)).ToJsonString());
+        }
+
+        // M7.5: Spindel/Kuehlung/Vakuum/Overrides/NullPunkt/PositioNeu — Dienst-Zustand (ehrlich).
+        switch (pfadQuergelesen)
+        {
+            case "/api/spindle/toggle" when methode == "POST":
+                zustand.SpindelAn = !zustand.SpindelAn;
+                if (zustand.SpindelAn && zustand.SpindelRpm == 0) zustand.SpindelRpm = 8000;
+                return (200, "OK", AuxObj(zustand).ToJsonString());
+            case "/api/spindle/speed" when methode == "POST":
+                var rpm = ParseDouble(koerperText, "rpm");
+                if (rpm is null || rpm < 0 || rpm > 100000)
+                    return (422, "Ungueltig", JsonObj(("error", "rpm erwartet (0..100000).")).ToJsonString());
+                zustand.SpindelRpm = (int)Math.Round(rpm.Value);
+                return (200, "OK", AuxObj(zustand).ToJsonString());
+            case "/api/coolant/toggle" when methode == "POST":
+                zustand.KuehlungAn = !zustand.KuehlungAn;
+                return (200, "OK", AuxObj(zustand).ToJsonString());
+            case "/api/vacuum/toggle" when methode == "POST":
+                zustand.VakuumAn = !zustand.VakuumAn;
+                return (200, "OK", AuxObj(zustand).ToJsonString());
+            case "/api/aux/stop" when methode == "POST":
+                zustand.SpindelAn = false; zustand.KuehlungAn = false; zustand.VakuumAn = false;
+                return (200, "OK", AuxObj(zustand).ToJsonString());
+            case "/api/override/speed" when methode == "POST":
+                return OverrideSetzen(zustand, koerperText, true);
+            case "/api/override/power" when methode == "POST":
+                return OverrideSetzen(zustand, koerperText, false);
+            case "/api/zero/edit" when methode == "POST":
+                return NullPunktEdit(zustand, koerperText);
+            case "/api/goto/saved/add" when methode == "POST":
+                return GespeichertHinzu(zustand, koerperText);
+            case "/api/jog/settings" when methode == "POST":
+                return JogEinstellungenSetzen(zustand, koerperText);
+        }
+
         // SSE-Events (Protokoll-Paritaet; begrenzt dokumentierter Modus: Anredegung + 3 Positions-
         // Ereignisse in 2s-Abstand, dann Verbindung schließen — Live-Monitore kommen mit dem GUI-Integrations-Zyklus)
         if (pfadQuergelesen == "/api/events")
@@ -147,15 +249,18 @@ public static class Router
         {
             "/api/status" => Gruen(MaschineObj(zustand)),
             "/api/overlay" => Gruen(OverlayObj(zustand)),
+            "/api/overlay/metadata" => (404, "Nicht gefunden", JsonObj(("error", "Kein Kamera-Overlay geladen.")).ToJsonString()),
             "/api/position" => Gruen(JsonObj(
                 ("machine", PunktObj(0, 0, 0)),
-                ("workpiece", PunktObj(0, 0, 0)))),
+                ("workpiece", PunktObj(-zustand.ArbeitNullX, -zustand.ArbeitNullY, -zustand.ArbeitNullZ)))),
             "/api/units" => Gruen(JsonObj(("distance_units", "mm"), ("units", "mm/min"))),
             "/api/layers" => Gruen(SchichtenObj(zustand)),
-            "/api/jog/settings" => Gruen(JsonObj(
-                ("xy", JsonObj(("distance", 10.0), ("speed", 6000.0))),
-                ("z", JsonObj(("distance", 10.0), ("speed", 600.0))))),
-            "/api/goto/saved" => Gruen(JsonObj(("positions", NeueListe()))),
+            "/api/jog/settings" => Gruen(JogEinstellungenObj(zustand)),
+            "/api/goto/saved" => Gruen(JsonObj(("positions", PositionsListe(zustand)))),
+            "/api/material-library" => Gruen(JsonObj(
+                ("product", "lightburn"), ("name", ""), ("filename", ""), ("entries", NeueListe()))),
+            "/api/events/poll" => Gruen(PollObjekt(zustand)),
+            "/api/_internal/standby" => Gruen(JsonObj(("ok", true))),
             "/api/cuts" => Gruen(SchnitteeinstellungenObj(zustand)),
             "/api/project" => Gruen(ProjektObj(zustand)),
             _ => (404, "Nicht gefunden", JsonObj(("error", "Endpunkt in dieser M7-Basis noch nicht umgesetzt.")).ToJsonString()),
@@ -188,6 +293,123 @@ public static class Router
 
     private static JsonObject PunktObj(double x, double y, double z) =>
         JsonObj(("x", x), ("y", y), ("z", z));
+
+    // --- M7.5: Protokoll-Helfer (PollSnapshot/Overrides/Aux nach den offiziellen Schemata) ---
+
+    private static JsonObject AuxObj(ApiZustand z) => JsonObj(
+        ("spindle_on", z.SpindelAn), ("spindle_rpm", z.SpindelRpm),
+        ("coolant_on", z.KuehlungAn), ("vacuum_on", z.VakuumAn));
+
+    private static JsonObject JogEinstellungenObj(ApiZustand z) => JsonObj(
+        ("xy_distance", z.JogXyAbstand), ("z_distance", z.JogZAbstand),
+        ("xy_speed", z.JogXyTempo), ("z_speed", z.JogZTempo),
+        ("units", "mm/min"), ("distance_units", "mm"));
+
+    private static JsonObject PollObjekt(ApiZustand z)
+    {
+        JsonObject job = JsonObj(("state", z.JobZustand));
+        if (z.JobZustand == "running") job["progress"] = z.JobFortschritt;
+        return JsonObj(
+            ("position", JsonObj(
+                ("machine", PunktObj(0, 0, 0)),
+                ("workpiece", PunktObj(-z.ArbeitNullX, -z.ArbeitNullY, -z.ArbeitNullZ)))),
+            ("job", job),
+            ("overrides", JsonObj(("speed_percent", z.OverrideSpeedProzent), ("power_percent", z.OverridePowerProzent))),
+            ("aux", AuxObj(z)),
+            ("connection", MaschineObj(z)),
+            ("settings", JogEinstellungenObj(z)));
+    }
+
+    private static JsonArray PositionsListe(ApiZustand z)
+    {
+        var arr = NeueListe();
+        foreach (var p in z.GespeichertePositionen)
+            arr.Add(JsonObj(("name", p.Name), ("x", p.X), ("y", p.Y), ("z", p.Z)));
+        return arr;
+    }
+
+    /// <summary>Ehrlicher Gate-Koerper fuer maschinennahe Routen: Route existiert, Ansteuerung folgt mit der Devices-Integration.</summary>
+    private static (int, string, string) MaschinenGate(ApiZustand z)
+    {
+        if (!z.Verbunden)
+            return (409, "Konflikt", JsonObj(("error", "Maschine nicht verbunden."), ("code", "not_connected")).ToJsonString());
+        return (409, "Konflikt", JsonObj(
+            ("error", "Route paritaetisch vorhanden; Maschinenansteuerung kommt mit der Devices-Integration."),
+            ("code", "device_integration_pending")).ToJsonString());
+    }
+
+    /// <summary>Zahlenwert aus JSON-Koerper lesen (leerer/ungueltiger Koerper = null).</summary>
+    private static double? ParseDouble(string text, string schluessel)
+    {
+        try
+        {
+            if (System.Text.Json.Nodes.JsonNode.Parse(text) is not System.Text.Json.Nodes.JsonObject o)
+                return null;
+            return o[schluessel] is System.Text.Json.Nodes.JsonValue v && v.TryGetValue(out double d) ? d : null;
+        }
+        catch { return null; }
+    }
+
+    private static (int, string, string) OverrideSetzen(ApiZustand z, string text, bool speed)
+    {
+        var d = ParseDouble(text, "percent") ?? ParseDouble(text, "prozent");
+        if (d is null || d < 10 || d > 200)
+            return (422, "Ungueltig", JsonObj(("error", "percent erwartet (10..200, GRBL-Override-Bereich).")).ToJsonString());
+        var p = (int)Math.Round(d.Value);
+        if (speed) z.OverrideSpeedProzent = p; else z.OverridePowerProzent = p;
+        return (200, "OK", JsonObj(("speed_percent", z.OverrideSpeedProzent), ("power_percent", z.OverridePowerProzent)).ToJsonString());
+    }
+
+    private static (int, string, string) NullPunktEdit(ApiZustand z, string text)
+    {
+        var x = ParseDouble(text, "x");
+        var y = ParseDouble(text, "y");
+        if (x is null && y is null)
+            return (422, "Ungueltig", JsonObj(("error", "x und/oder y erwartet.")).ToJsonString());
+        var vorher = JsonObj(("x", z.ArbeitNullX), ("y", z.ArbeitNullY), ("z", z.ArbeitNullZ));
+        if (x is not null) z.ArbeitNullX = x.Value;
+        if (y is not null) z.ArbeitNullY = y.Value;
+        var zz = ParseDouble(text, "z");
+        if (zz is not null) z.ArbeitNullZ = zz.Value;
+        return (200, "OK", JsonObj(
+            ("previous", vorher),
+            ("current", JsonObj(("x", z.ArbeitNullX), ("y", z.ArbeitNullY), ("z", z.ArbeitNullZ)))).ToJsonString());
+    }
+
+    private static (int, string, string) GespeichertHinzu(ApiZustand z, string text)
+    {
+        var x = ParseDouble(text, "x");
+        var y = ParseDouble(text, "y");
+        if (x is null || y is null)
+            return (422, "Ungueltig", JsonObj(("error", "x und y erwartet.")).ToJsonString());
+        var name = "";
+        try
+        {
+            if (System.Text.Json.Nodes.JsonNode.Parse(text) is System.Text.Json.Nodes.JsonObject o &&
+                o["name"] is System.Text.Json.Nodes.JsonValue nv && nv.TryGetValue(out string s))
+                name = s ?? "";
+        }
+        catch { /* Name optional */ }
+        z.GespeichertePositionen.Add(new GespeichertePosition
+        { Name = name, X = x.Value, Y = y.Value, Z = ParseDouble(text, "z") ?? 0 });
+        return (200, "OK", JsonObj(("saved", z.GespeichertePositionen.Count), ("positions", PositionsListe(z))).ToJsonString());
+    }
+
+    private static (int, string, string) JogEinstellungenSetzen(ApiZustand z, string text)
+    {
+        var xy = ParseDouble(text, "xy_distance");
+        var zs = ParseDouble(text, "z_distance");
+        var xyT = ParseDouble(text, "xy_speed");
+        var zT = ParseDouble(text, "z_speed");
+        if (xy is null && zs is null && xyT is null && zT is null)
+            return (422, "Ungueltig", JsonObj(("error", "xy_distance/z_distance/xy_speed/z_speed erwartet.")).ToJsonString());
+        if (xy is not null && xy >= 0) z.JogXyAbstand = xy.Value;
+        if (zs is not null && zs >= 0) z.JogZAbstand = zs.Value;
+        if (xyT is not null && xyT >= 0) z.JogXyTempo = xyT.Value;
+        if (zT is not null && zT >= 0) z.JogZTempo = zT.Value;
+        return (200, "OK", JogEinstellungenObj(z).ToJsonString());
+    }
+
 
     private static JsonObject MaschineObj(ApiZustand z) => JsonObj(
         ("connected", z.Verbunden),

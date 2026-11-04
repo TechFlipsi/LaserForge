@@ -1,5 +1,17 @@
 # Änderungen
 
+## Unreleased (04.11.2026 — M7.5 API-Parität)
+- REST: +14 Routen nach der LightBurn-2.2-API (offizielle Spec + Befunde aus der Clean-Room-Analyse 25.10./04.11.):
+  `jog/settings`(POST), `position`/`events/poll` mit Nullpunkt-Arbeitsbereich, `goto/saved`(Liste), `goto/saved/add`,
+  `zero/edit`, `spindle/toggle`, `spindle/speed`, `coolant/toggle`, `vacuum/toggle`, `aux/stop`,
+  `override/speed`, `override/power` (GRBL-Bereich 10–200 %), `file/open` (202 + Projekt-Ersatz),
+  `bind` (Zweit-Pairing, nur Loopback), `_internal/standby`, `overlay/metadata` (404 ohne Kamera),
+  `material-library` (leere Bibliothek, product=lightburn).
+- Maschinennahe Routen (jog/home/zero/goto/job) mit ehrlichem Gate-Körper
+  (`not_connected` / `device_integration_pending`) bis zur Devices-Integration.
+- `events/poll` = kompletter PollSnapshot (position/job/overrides/aux/connection/settings) als SSE-Fallback.
+- 14 neue Parität-Tests (74/74 grün, Stand-PC-Bau).
+
 ## v0.1 — 25.10.2026 (Erstveröffentlichung)
 - Lösungsskelett: 6 Projekte (Core/Devices/Api/Cli/Desktop + Tests), .NET 10, GPL-3.0-only
 - Kernbibliothek: Geometrie (Punkt/Zug/Transformationsmatrix a b c d e f), Formen (Rechteck/Ellipse/Polygon/Pfad mit Bezier-Knotendaten/Bild/Gruppe)
