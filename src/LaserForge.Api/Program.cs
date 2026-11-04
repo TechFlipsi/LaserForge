@@ -14,6 +14,7 @@ var zustandDatei = System.IO.Path.Combine(
     Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "LaserForge", "api-paarungen.json");
 zustand.Laden(zustandDatei);
 var maschinenSitzung = new MaschinenSitzung(); // M8: echte Maschinenrouten über das aktive Gerät
+var jobEngine = new JobEngine();               // M9: echte GCode-Fahrt (Hold/Resume/Abort)
 var listener = new TcpListener(IPAddress.Loopback, port);
 listener.Start();
 Console.WriteLine($"LaserForge-API lauscht auf http://127.0.0.1:{port}/ — Protokollparitaet bereit (Paarung nur Loopback).");
@@ -57,7 +58,7 @@ void Behandeln(TcpClient client)
         var alles = sb.ToString();
         var trennIx = alles.IndexOf("\r\n\r\n");
         var koerperText = trennIx >= 0 ? alles[(trennIx + 4)..] : "";
-        var (code, grund, koerper) = Router.Behandeln(methode, pfad, bearer, loopback, zustand, koerperText, xDateiname, maschinenSitzung);
+        var (code, grund, koerper) = Router.Behandeln(methode, pfad, bearer, loopback, zustand, koerperText, xDateiname, maschinenSitzung, jobEngine);
         if (koerper == "SSE-STREAM")
         {
             // Rohen SSE-Strom schreiben (Protokoll: text/event-stream)

@@ -31,6 +31,8 @@ public partial class KonfigFenster : Window
     public KonfigFenster(LaserForge.Core.Geraete.Geraet geraet)
     {
         InitializeComponent();
+        Background = Avalonia.Media.Brush.Parse(LaserForge.Core.Thema.ThemeFarben.Fensterrahmen);
+        KonfigListe.Background = Avalonia.Media.Brush.Parse(LaserForge.Core.Thema.ThemeFarben.Liste);
         StatusZeile.Text = $"Verbinde {geraet.Anschluss} @ {geraet.Baud} …";
         Title = $"Geräte-Konfiguration — {geraet.Name} ({geraet.Anschluss})";
         Task.Run(() => LesenAuftrag(geraet));

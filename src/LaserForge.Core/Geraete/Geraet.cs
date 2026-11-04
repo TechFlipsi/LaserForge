@@ -50,7 +50,10 @@ public static class GeraeteSpeicher
         try
         {
             if (!System.IO.File.Exists(Pfad)) return new List<Geraet>();
-            var liste = JsonSerializer.Deserialize<List<Geraet>>(System.IO.File.ReadAllText(Pfad), Optionen);
+            // Share.ReadWrite: parallel laufende Schreiber (GUI/API/Tests) blockieren nicht.
+            using var st = new System.IO.FileStream(Pfad, System.IO.FileMode.Open, System.IO.FileAccess.Read, System.IO.FileShare.ReadWrite);
+            using var r = new System.IO.StreamReader(st);
+            var liste = JsonSerializer.Deserialize<List<Geraet>>(r.ReadToEnd(), Optionen);
             return liste ?? new List<Geraet>();
         }
         catch { return new List<Geraet>(); } // beschädigter Speicher = leere Liste, Dialog bleibt bedienbar
@@ -60,7 +63,11 @@ public static class GeraeteSpeicher
     {
         var ordner = System.IO.Path.GetDirectoryName(Pfad)!;
         System.IO.Directory.CreateDirectory(ordner);
-        System.IO.File.WriteAllText(Pfad, JsonSerializer.Serialize(geraete.ToList(), Optionen));
+        var inhalt = JsonSerializer.Serialize(geraete.ToList(), Optionen);
+        // Share.ReadWrite: parallel laufende Leser (GUI/API/Tests) blockieren nicht.
+        using var st = new System.IO.FileStream(Pfad, System.IO.FileMode.Create, System.IO.FileAccess.Write, System.IO.FileShare.Read);
+        using var w = new System.IO.StreamWriter(st);
+        w.Write(inhalt);
     }
 
     /// <summary>Aktives Geraet setzen (Standard-Flag exklusiv) und sofort persistieren.</summary>

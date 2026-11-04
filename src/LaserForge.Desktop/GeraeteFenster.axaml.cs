@@ -25,6 +25,8 @@ public partial class GeraeteFenster : Window
     public GeraeteFenster()
     {
         InitializeComponent();
+        Background = Avalonia.Media.Brush.Parse(LaserForge.Core.Thema.ThemeFarben.Fensterrahmen);
+        Liste.Background = Avalonia.Media.Brush.Parse(LaserForge.Core.Thema.ThemeFarben.Liste);
         Geraete = GeraeteSpeicher.Laden();
         if (Geraete.Count == 0)
             Geraete.Add(new LaserForge.Core.Geraete.Geraet { Name = "Neues Gerät", Anschluss = "COM0" });

@@ -111,7 +111,7 @@ public static class Router
 {
     public static (int Code, string Grund, string Koerper) Behandeln(
         string methode, string pfad, string? bearer, bool loopback, ApiZustand zustand,
-        string koerperText = "", string xDateiname = "", MaschinenSitzung? maschine = null)
+        string koerperText = "", string xDateiname = "", MaschinenSitzung? maschine = null, JobEngine? jobEngine = null)
     {
         if (!pfad.StartsWith("/api/", StringComparison.Ordinal))
         {
@@ -202,7 +202,7 @@ public static class Router
             case "/api/job/pause" when methode == "POST":
             case "/api/job/stop" when methode == "POST":
             case "/api/jog/stop" when methode == "POST":
-                return MaschinenSende(maschine, zustand, pfadQuergelesen, koerperText);
+                return MaschinenSende(maschine, jobEngine, zustand, pfadQuergelesen, koerperText);
         }
 
         // M7.5: Spindel/Kuehlung/Vakuum/Overrides/NullPunkt/PositioNeu — Dienst-Zustand (ehrlich).
@@ -257,8 +257,7 @@ public static class Router
             "/api/layers" => Gruen(SchichtenObj(zustand)),
             "/api/jog/settings" => Gruen(JogEinstellungenObj(zustand)),
             "/api/goto/saved" => Gruen(JsonObj(("positions", PositionsListe(zustand)))),
-            "/api/material-library" => Gruen(JsonObj(
-                ("product", "lightburn"), ("name", ""), ("filename", ""), ("entries", NeueListe()))),
+            "/api/material-library" => MaterialBibliothekObj(),
             "/api/events/poll" => Gruen(PollObjekt(zustand, maschine)),
             "/api/_internal/standby" => Gruen(JsonObj(("ok", true))),
             "/api/cuts" => Gruen(SchnitteeinstellungenObj(zustand)),
@@ -335,27 +334,17 @@ public static class Router
     }
 
     /// <summary>
-    /// Maschinenrouten M8: über die Sitzung zum aktiven Gerät — echtes Senden (Jog/Home/Zero/Goto),
-    /// ehrliche Fehler-Körper (Port belegt/port, Maschinen-Begründung), Job-Routen brauchen den
-    /// Pipeline-Runner (bewusstes Gate bis dahin). Ohne Sitzung (Testbetrieb/CLI ohne Device-Layer):
-    /// device_integration_pending-Gate.
+    /// Maschinenrouten M8/M9: über die Sitzung zum aktiven Gerät — echtes Senden (Jog/Home/Zero/Goto),
+    /// echte Job-Fahrt über die JobEngine (GRBL-GCode, ok-Sync, Hold/Resume/Abort), ehrliche
+    /// Fehler-Körper. Ohne Sitzung/Engine (Testbetrieb): bewusste Gates.
     /// </summary>
     private static (int, string, string) MaschinenSende(
-        MaschinenSitzung? maschine, ApiZustand zustand, string pfad, string koerperText)
+        MaschinenSitzung? maschine, JobEngine? jobEngine, ApiZustand zustand, string pfad, string koerperText)
     {
         if (maschine is null)
             return (409, "Konflikt", JsonObj(
                 ("error", "Route paritaetisch vorhanden; Maschinenansteuerung kommt mit der Devices-Integration."),
                 ("code", "device_integration_pending")).ToJsonString());
-
-        if (pfad == "/api/job/start" || pfad == "/api/job/pause" || pfad == "/api/job/stop")
-        {
-            if (maschine.VerbundenPort is null)
-                return (409, "Konflikt", JsonObj(("error", "Maschine nicht verbunden."), ("code", "not_connected")).ToJsonString());
-            return (409, "Konflikt", JsonObj(
-                ("error", "Job-Aufrufe brauchen den Pipeline-Runner am API-Dienst."),
-                ("code", "job_engine_pending")).ToJsonString());
-        }
 
         // Aktives Gerät (Standard-Gerät aus der Gerätewartung) — ohne Anschluss kein Senden.
         var gerListe = GeraeteSpeicher.Laden();
@@ -373,6 +362,37 @@ public static class Router
         }
 
         var verbindung = maschine.Verbindung!;
+
+        // --- M9: Job-Fahrt (echte GRBL-GCode-Ausgabe aus dem Projekt) ---
+        switch (pfad)
+        {
+            case "/api/job/start":
+            {
+                if (jobEngine is null)
+                    return (409, "Konflikt", JsonObj(("error", "Job-Aufrufe brauchen den Pipeline-Runner am API-Dienst."), ("code", "job_engine_pending")).ToJsonString());
+                var gestartet = jobEngine.Start(maschine, zustand, out var fehlertext);
+                if (!gestartet)
+                    return (409, "Konflikt", JsonObj(("error", fehlertext), ("code", "job_rejected")).ToJsonString());
+                return (200, "OK", JsonObj(("ok", true), ("job", "started")).ToJsonString());
+            }
+            case "/api/job/pause":
+            {
+                if (jobEngine is null)
+                    return (409, "Konflikt", JsonObj(("error", "Job-Aufrufe brauchen den Pipeline-Runner am API-Dienst."), ("code", "job_engine_pending")).ToJsonString());
+                var neu = jobEngine.HalteOderFortsetzen(maschine);
+                zustand.JobZustand = neu;
+                return (200, "OK", JsonObj(("ok", true), ("job", neu)).ToJsonString());
+            }
+            case "/api/job/stop":
+            {
+                if (jobEngine is null)
+                    return (409, "Konflikt", JsonObj(("error", "Job-Aufrufe brauchen den Pipeline-Runner am API-Dienst."), ("code", "job_engine_pending")).ToJsonString());
+                jobEngine.Stoppen(maschine);
+                zustand.JobZustand = "idle";
+                return (200, "OK", JsonObj(("ok", true), ("job", "aborted")).ToJsonString());
+            }
+        }
+
         if (pfad == "/api/jog/stop")
         {
             maschine.JogAbbruch();   // Realtime 0x85 (Jog-Abbruch, GRBL-Paritaet)
@@ -475,6 +495,31 @@ public static class Router
     private static JsonObject PositionObj(GrblStatus st) => JsonObj(
         ("machine", PunktObj(st.MaschineX, st.MaschineY, st.MaschineZ)),
         ("workpiece", PunktObj(st.WerkX, st.WerkY, st.WerkZ)));
+
+    /// <summary>Material-Bibliothek im Protokoll-Format (produktebene lightburn; echte Eintraege je Benutzer).</summary>
+    private static (int, string, string) MaterialBibliothekObj()
+    {
+        var arr = NeueListe();
+        foreach (var e in MaterialBibliothek.Laden())
+        {
+            JsonNode? schnitt = null;
+            try { schnitt = JsonNode.Parse(e.SchnittdatenJson); } catch { /* beschädigte Zeile = überspringen */ }
+            arr.Add(JsonObj(
+                ("guid", e.Guid),
+                ("material", e.Material),
+                ("description", e.Beschreibung),
+                ("no_thick_title", e.TitelOhneDicke),
+                ("thickness", e.Dicke),
+                ("locked", e.Gesperrt),
+                ("cut", schnitt ?? JsonObj(
+                    ("index", -1), ("name", e.Material), ("kind", "normal"), ("layer_index", -1),
+                    ("enabled", true), ("priority", 0), ("profile", "gantry"),
+                    ("params", JsonObj(("mode", "cut")))))));
+        }
+        return (200, "OK", JsonObj(
+            ("product", "lightburn"), ("name", "MaterialBibliothek"), ("filename", "material-library.json"),
+            ("entries", arr)).ToJsonString());
+    }
 
     private static (int, string, string) PositionAusMaschine(MaschinenSitzung? maschine, ApiZustand z)
     {

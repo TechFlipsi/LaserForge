@@ -35,6 +35,9 @@ public static class StartEinstellung
     /// <summary>QA: Port für den Konfig-Drill (--konfig-port=COM4) — überschreibt aktives Gerät.</summary>
     public static string KonfigPort = "";
 
+    /// <summary>Theme: hell/dunkel (--theme=hell|dunkel; dunkel = gemessene Palette).</summary>
+    public static bool ThemeHell;
+
     /// <summary>Verzögerung der QA-Automatik (ms) — zum Rhythmus-Machen der Capture.</summary>
     public static int WarteMs = 700;
 }
@@ -86,7 +89,16 @@ internal static class Program
             {
                 StartEinstellung.KonfigPort = a[14..].Trim('"');
             }
+            else if (string.Equals(a, "--theme=hell", StringComparison.OrdinalIgnoreCase))
+            {
+                StartEinstellung.ThemeHell = true;
+            }
+            else if (string.Equals(a, "--theme=dunkel", StringComparison.OrdinalIgnoreCase))
+            {
+                StartEinstellung.ThemeHell = false;
+            }
         }
+        LaserForge.Core.Thema.ThemeFarben.IstHell = StartEinstellung.ThemeHell;
         BuildAvaloniaApp().StartWithClassicDesktopLifetime(args);
     }
 

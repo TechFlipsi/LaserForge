@@ -1,5 +1,6 @@
 using System.Text.Json.Nodes;
 using LaserForge.Api.Rest;
+using LaserForge.Core.Geraete;
 using Xunit;
 
 namespace LaserForge.Tests;
@@ -185,6 +186,24 @@ public class RestParitaetTests
         Assert.Contains("accepted", koerper);
         Assert.Contains("test.lbrn2", koerper);
         Assert.Empty(((ApiZustand)z).Projekt.Formen); // File→Open: Projekt ganz ersetzt
+    }
+
+    [Fact]
+    public void Material_Bibliothek_liefert_Eintraege()
+    {
+        var z = Zustand();
+        MaterialBibliothek.Speichern(new List<MaterialEintrag>
+        {
+            new() { Guid = 7, Material = "Birke 3mm", Beschreibung = "Sperrholz", Dicke = 3 },
+            new() { Guid = 9, Material = "Acryl klar", Beschreibung = "Cast", Dicke = 5, Gesperrt = true },
+        });
+        var (code, _, koerper) = Router.Behandeln("GET", "/api/material-library", Bear(z), true, z);
+        Assert.Equal(200, code);
+        Assert.Contains("Birke 3mm", koerper);
+        Assert.Contains("Acryl klar", koerper);
+        Assert.Contains("\"product\":\"lightburn\"", koerper);
+        Assert.Contains("\"layer_index\":-1", koerper); // Protokollform: Bibliothek ohne Position
+        MaterialBibliothek.Speichern(new List<MaterialEintrag>()); // aufräumen
     }
 
     [Fact]

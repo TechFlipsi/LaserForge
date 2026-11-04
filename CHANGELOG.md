@@ -18,15 +18,26 @@
 - **Maschinenrouten M8 — echte Geräte-Ansteuerung**: jog/jog/stop/home/zero/goto/goto-saved-go
   senden jetzt an den Laser (MaschinenSitzung → aktives Gerät, serieller Transport; Position
   aus echtem GRBL-Status in position/events-poll). Fehler-Ebene ehrlich: port_busy (LB hält
-  den Port) / port_error / not_connected / no_device; Job-Routen weiter in job_engine_pending
-  (Pipeline-Runner folgt). End-to-End-Tests bis zur Sendezeile ($J=/G0/$H/roh-0x85).
+  den Port) / port_error / not_connected / no_device. End-to-End-Tests bis zur Sendezeile ($J=/G0/$H/roh-0x85).
+- **Job-Engine M9 — echte GCode-Fahrt über die API**: job/start erzeugt GRBL-GCode aus dem
+  Projekt (Kern-Pipeline, Golden-Spec) und fährt ihn zeilenweise mit ok-Sync; Pause = Realtime
+  Feed-Hold / Resume (Toggle), Stop = Abort 0x18; Sicherheits-Gate: Laser-Modus $32=1 Pflicht
+  (sonst job_rejected + Brandgefahr-Meldung), bei error: SENDEN STOPPEN; Fortschritt live im poll.
+- Test-Läufe xunit-serial (Geraete-/Material-Dateien parallel-fest); 93/93 grün am PC.
+- **Material-Bibliothek mit Inhalt**: /api/material-library liefert echte Einträge aus
+  material-library.json je Benutzer (Protokoll-Shape incl. cut index=-1/layer_index=-1).
+- **Theme-Ebene (hell/dunkel)**: ThemeFarben (dunkel = gemessen; hell = Vorlaul-Set, Messung
+  folgt), --theme=hell|dunkel Startflag, Geräte-/Konfig-Fenster nutzen die Paletten (MainWindow-Farben folgen in Runde 3).
+- **Icon-Set P1 (12 Glyphen)**: eigene Clean-Room-PNGs (assets/icons/lf_*.png 128px +
+  Kontaktbogen-Pass), tools/bauer_icons.py erweiterbar auf den vollen 40er-P1-Katalog;
+  GUI-Anbindung nächste Runde mit Sirs Look-Abnahme.
 - Desktop-Referenz auf LaserForge.Devices (Ports-Scan); +8 Tests (82/82 grün am PC).
 - REST: +14 Routen nach der LightBurn-2.2-API (offizielle Spec + Befunde aus der Clean-Room-Analyse 25.10./04.11.):
   `jog/settings`(POST), `position`/`events/poll` mit Nullpunkt-Arbeitsbereich, `goto/saved`(Liste), `goto/saved/add`,
   `zero/edit`, `spindle/toggle`, `spindle/speed`, `coolant/toggle`, `vacuum/toggle`, `aux/stop`,
   `override/speed`, `override/power` (GRBL-Bereich 10–200 %), `file/open` (202 + Projekt-Ersatz),
   `bind` (Zweit-Pairing, nur Loopback), `_internal/standby`, `overlay/metadata` (404 ohne Kamera),
-  `material-library` (leere Bibliothek, product=lightburn).
+  `material-library` (Bibliothek-Inhalt, product=lightburn).
 - Maschinennahe Routen (jog/home/zero/goto/job) mit ehrlichem Gate-Körper
   (`not_connected` / `device_integration_pending`) bis zur Devices-Integration.
 - `events/poll` = kompletter PollSnapshot (position/job/overrides/aux/connection/settings) als SSE-Fallback.

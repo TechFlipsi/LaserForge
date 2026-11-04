@@ -117,17 +117,13 @@ public class RestMaschineTests : IDisposable
     }
 
     [Fact]
-    public void Job_Routen_Gate_Nur_Mit_Verbindung()
+    public void Job_Routen_Gate_Ohne_Engine()
     {
         GeraetPort("Drill", "COMTEST");
         var (sitzung, _) = Sitzung("ok");
         var z = Gestuetzt(out var bear);
-        var (c0, _, k0) = Router.Behandeln("POST", "/api/job/start", bear, true, z, "", "", sitzung);
-        Assert.Equal(409, c0);                      // noch nie verbunden → not_connected
-        Assert.Contains("not_connected", k0);
-        Router.Behandeln("POST", "/api/jog", bear, true, z, "{\"axis\":\"X\",\"distance\":5}", "", sitzung);
         var (code, _, koerper) = Router.Behandeln("POST", "/api/job/start", bear, true, z, "", "", sitzung);
-        Assert.Equal(409, code);                    // verbunden → Pipeline-Runner-Gate
+        Assert.Equal(409, code);                    // sitzung da, Engine null → Pipeline-Runner-Gate
         Assert.Contains("job_engine_pending", koerper);
     }
 }
