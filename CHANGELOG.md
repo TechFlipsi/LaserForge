@@ -1,17 +1,21 @@
 # Änderungen
 
-## Unreleased (04.11.2026 — M7.5 API-Parität + Geräte-Dialog)
-- **Geräte-Dialog (GUI)**: Liste (Name + „Protokoll | Sprache" + Standard-Markierung), 8 Buttons
-  wie das Vorbild-Dialogfenster: Laser suchen (Ports-Liste), Manuell erstellen, LightBurn Bridge
-  (bewusst deaktiviert — Transport-TCP folgt), Importieren (LightBurn-prefs.ini-DeviceList-Import),
-  Als Standard setzen, Bearbeiten, Entfernen, Exportieren (JSON); OK/Abbrechen;
-  QA-Hilfslinie qa-geraete-dialog.txt (Fern-Drill-Nachweis).
+## Unreleased (04.11.2026 — M7.5 API-Parität + Geräte-Dialog + Geräte-Konfig am Laser)
 - **Geraet-Modell + Persistenz** (Core): geraete.json je Benutzer; **LightBurn-Import**:
   prefs.ini (JSON) DeviceList → Anschluss/Baud/Workspace/Jog (mm/s→mm/min ×60) /Spiegel/StartHome;
   Secret-/RestAPI-Felder bewusst NICHT übernommen.
-- MainWindow: Menü „Laserwerkzeuge → Geräte …"; nach OK füllt das aktive Gerät die Geräte-Zeile
-  im Maschinen-Panel (Name + Anschluss, Protokoll).
-- Desktop-Referenz auf LaserForge.Devices (Ports-Scan); 4 neue Geraete-Tests (78/78 grün).
+- **Geräte-Dialog (GUI)**: Liste (Name + „Protokoll | Sprache" + Standard-Markierung), 8 Buttons:
+  Laser suchen (Ports-Liste), Manuell erstellen, LightBurn Bridge (bewusst deaktiviert —
+  Transport-TCP folgt), Importieren (LightBurn-prefs.ini-DeviceList), Als Standard setzen,
+  Bearbeiten, Entfernen, Exportieren (JSON); OK/Abbrechen; QA-Hilfslinie qa-geraete-dialog.txt.
+- **Geräte-Konfiguration direkt am Laser (GRBL)**: neuer Dialog (Parität zu LightBurns
+  „Machine Settings → GRBL Configuration") — `$$` lesen, Werte bearbeiten, geänderte Werte
+  per `$x=value` zum Gerät schreiben (EEPROM, Injektions-Schranke, error-Zeile durchgereicht);
+  Menü „Laserwerkzeuge → Geräte-Konfiguration (am Laser) …", QA-Hook `--konfig-dialog
+  --konfig-port=COMx` + Status-Datei; Fehler-Route bewiesen (belegter Port → saubere Meldung).
+- MainWindow: Geräte-Zeile = Laser-Auswahl (Auswahl wechselt das aktive Gerät inkl. Persistenz);
+  Menü „Geräte …" füllt die Zeile nach OK.
+- Desktop-Referenz auf LaserForge.Devices (Ports-Scan); +8 Tests (82/82 grün am PC).
 - REST: +14 Routen nach der LightBurn-2.2-API (offizielle Spec + Befunde aus der Clean-Room-Analyse 25.10./04.11.):
   `jog/settings`(POST), `position`/`events/poll` mit Nullpunkt-Arbeitsbereich, `goto/saved`(Liste), `goto/saved/add`,
   `zero/edit`, `spindle/toggle`, `spindle/speed`, `coolant/toggle`, `vacuum/toggle`, `aux/stop`,

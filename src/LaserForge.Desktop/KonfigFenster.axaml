@@ -1,0 +1,43 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:desktop="clr-namespace:LaserForge.Desktop"
+        mc:Ignorable="d"
+        x:Class="LaserForge.Desktop.KonfigFenster"
+        Title="Geräte-Konfiguration (am Laser)" Width="720" Height="660" CanResize="True"
+        WindowStartupLocation="CenterOwner" Background="#1e1e1e">
+  <Grid Margin="12,10,12,10" RowDefinitions="Auto,*,Auto,Auto">
+    <StackPanel Grid.Row="0" Spacing="2">
+      <TextBlock x:Name="StatusZeile" Text="Verbinde …" Foreground="#C8C8C8" FontSize="12"/>
+      <TextBlock Text="Maschinen-Einstellungen ($) direkt am Gerät — Änderungen werden dauerhaft im Gerät gespeichert. Nur ändern, wenn du weißt was der Wert tut."
+                 Foreground="#9a9a9a" FontSize="11" TextWrapping="Wrap"/>
+    </StackPanel>
+
+    <ScrollViewer Grid.Row="1" Margin="0,8,0,8" Background="#161616" BorderBrush="#3a3a3a" BorderThickness="1">
+      <ItemsControl x:Name="KonfigListe" Margin="4">
+        <ItemsControl.ItemTemplate>
+          <DataTemplate x:DataType="desktop:KonfigZeile">
+            <Grid ColumnDefinitions="110,*,*" Margin="2,1">
+              <TextBlock Grid.Column="0" Text="{Binding Schluessel}" Foreground="#8FCB8F" FontSize="12"
+                         VerticalAlignment="Center" FontFamily="Consolas"/>
+              <TextBox Grid.Column="1" Text="{Binding Wert}" Background="#0c0c0c" Foreground="#E8E8E8"
+                       BorderBrush="#2a2a2a" Height="24" FontSize="12" FontFamily="Consolas"/>
+              <TextBlock Grid.Column="2" Text="{Binding Geaendert}" Foreground="#E8A040" FontSize="11"
+                         VerticalAlignment="Center" Margin="6,0,0,0"/>
+            </Grid>
+          </DataTemplate>
+        </ItemsControl.ItemTemplate>
+      </ItemsControl>
+    </ScrollViewer>
+
+    <StackPanel Grid.Row="2" Orientation="Horizontal" Spacing="8" HorizontalAlignment="Left">
+      <Button x:Name="LesenBtn" Content="Aus Gerät lesen" Height="26" Click="OnLesen"/>
+      <Button x:Name="SchreibenBtn" Content="Änderungen zum Gerät schreiben" Height="26" Click="OnSchreiben"/>
+      <CheckBox x:Name="AlleBox" Content="alle Zeilen schreiben (sonst nur geänderte)" Foreground="#C8C8C8" FontSize="11" VerticalAlignment="Center"/>
+    </StackPanel>
+
+    <StackPanel Grid.Row="3" Orientation="Horizontal" HorizontalAlignment="Right">
+      <Button Width="86" Height="26" Content="Schließen" Click="OnSchliessen"/>
+    </StackPanel>
+  </Grid>
+</Window>

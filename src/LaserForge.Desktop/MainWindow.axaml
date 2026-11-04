@@ -110,6 +110,7 @@
       <MenuItem Header="Anordnen"/>
       <MenuItem Header="Laserwerkzeuge">
         <MenuItem Header="Geräte …" Click="OnGeraeteDialog"/>
+        <MenuItem Header="Geräte-Konfiguration (am Laser) …" Click="OnKonfigDialog"/>
       </MenuItem>
       <MenuItem Header="Web-Werkzeuge"/>
       <MenuItem Header="Fenster"/>
@@ -499,7 +500,7 @@
           <!-- Geräte-Zeile -->
           <StackPanel Grid.Row="9" Orientation="Horizontal" Spacing="6" Margin="0,7,0,2">
             <TextBlock Text="Gerät:" FontSize="11" Foreground="#B8B8B8" VerticalAlignment="Center"/>
-            <ComboBox x:Name="PortCombo" Width="180" Height="24" FontSize="11" SelectedIndex="0">
+            <ComboBox x:Name="PortCombo" Width="180" Height="24" FontSize="11" SelectedIndex="0" SelectionChanged="OnPortAuswahl">
               <ComboBoxItem Content="COM3"/>
             </ComboBox>
             <ComboBox x:Name="ProtoCombo" Width="150" Height="24" FontSize="11" SelectedIndex="0">

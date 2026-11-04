@@ -29,6 +29,12 @@ public static class StartEinstellung
     /// <summary>QA: Geräte-Dialog als Startfenster (Dialog-Nachweis ohne Menü-Klick).</summary>
     public static bool GeraeteDialog;
 
+    /// <summary>QA: Konfig-Dialog als Startfenster (Fern-Drill am echten Port).</summary>
+    public static bool KonfigDialog;
+
+    /// <summary>QA: Port für den Konfig-Drill (--konfig-port=COM4) — überschreibt aktives Gerät.</summary>
+    public static string KonfigPort = "";
+
     /// <summary>Verzögerung der QA-Automatik (ms) — zum Rhythmus-Machen der Capture.</summary>
     public static int WarteMs = 700;
 }
@@ -71,6 +77,14 @@ internal static class Program
             else if (string.Equals(a, "--geraete-dialog", StringComparison.OrdinalIgnoreCase))
             {
                 StartEinstellung.GeraeteDialog = true;
+            }
+            else if (string.Equals(a, "--konfig-dialog", StringComparison.OrdinalIgnoreCase))
+            {
+                StartEinstellung.KonfigDialog = true;
+            }
+            else if (a.StartsWith("--konfig-port=", StringComparison.Ordinal))
+            {
+                StartEinstellung.KonfigPort = a[14..].Trim('"');
             }
         }
         BuildAvaloniaApp().StartWithClassicDesktopLifetime(args);

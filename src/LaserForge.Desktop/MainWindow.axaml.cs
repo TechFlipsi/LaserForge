@@ -16,6 +16,7 @@ using LaserForge.Core.Einstellungen;
 using LaserForge.Core.Formate;
 using LaserForge.Core.Formen;
 using LaserForge.Core.Geometrie;
+using LaserForge.Core.Geraete;
 using LaserForge.Core.Pipeline;
 using LaserForge.Desktop.Controls;
 
@@ -386,17 +387,50 @@ public partial class MainWindow : Window
         var g = fenster.AktivesGeraet;
         PortCombo.Items.Clear();
         foreach (var x in fenster.Geraete)
-            PortCombo.Items.Add(new ComboBoxItem { Content = $"{x.Name} ({x.Anschluss})" });
+            PortCombo.Items.Add(new ComboBoxItem { Content = $"{x.Name} ({x.Anschluss})", Tag = x });
         if (g is not null)
         {
             var items = PortCombo.Items.OfType<ComboBoxItem>().ToList();
-            var treffer = items.FirstOrDefault(i =>
-                i.Content is string t && t.StartsWith(g.Name + " (", StringComparison.Ordinal));
+            var treffer = items.FirstOrDefault(i => ReferenceEquals(i.Tag, g));
             if (treffer is not null) PortCombo.SelectedItem = treffer;
             ProtoCombo.Items.Clear();
             ProtoCombo.Items.Add(new ComboBoxItem { Content = g.Protokoll });
             ProtoCombo.SelectedIndex = 0;
         }
+    }
+
+    /// <summary>Geräte-Zeile im Maschinen-Panel: Auswahl wechselt den aktiven Laser (Standard-Gerät).</summary>
+    private void OnPortAuswahl(object? s, SelectionChangedEventArgs e)
+    {
+        if (PortCombo.SelectedItem is ComboBoxItem c && c.Tag is LaserForge.Core.Geraete.Geraet g && !g.IstStandard)
+        {
+            var liste = GeraeteSpeicher.Laden();
+            var ziel = liste.FirstOrDefault(x =>
+                x.Name.Equals(g.Name, StringComparison.Ordinal) &&
+                x.Anschluss.Equals(g.Anschluss, StringComparison.Ordinal));
+            if (ziel is not null)
+            {
+                GeraeteSpeicher.SetzeStandard(liste, ziel);
+                ProtoCombo.Items.Clear();
+                ProtoCombo.Items.Add(new ComboBoxItem { Content = ziel.Protokoll });
+                ProtoCombo.SelectedIndex = 0;
+            }
+        }
+    }
+
+    /// <summary>Geraete-Konfiguration direkt am Laser (GRBL $-Einstellungen lesen/aendern).</summary>
+    private void OnKonfigDialog(object? s, RoutedEventArgs e)
+    {
+        var liste = GeraeteSpeicher.Laden();
+        var g = liste.FirstOrDefault(x => x.IstStandard) ?? liste.FirstOrDefault();
+        if (g is null || g.Anschluss.Length == 0)
+        {
+            ProtoCombo.Items.Clear();
+            ProtoCombo.Items.Add(new ComboBoxItem { Content = "erst Gerät wählen" });
+            ProtoCombo.SelectedIndex = 0;
+            return;
+        }
+        new KonfigFenster(g).Show(this);
     }
 
     /// <summary>Neues leeres Projekt (Layer 00/01 wie die Bibel).</summary>

@@ -55,6 +55,42 @@ public sealed class GrblAusruestung
     /// <summary>Lasermodus-Test ($32): true = Lasermodus an; false = WARNUNG nötig (Brandgefahr bei S!=0 mit G0).</summary>
     public bool LasermodusAn(Dictionary<string, string>? einstellungen = null) =>
         (einstellungen ?? EinstellungenLesen()).TryGetValue("$32", out var wert) && wert.Trim() == "1";
+
+    /// <summary>Letzte error:-Zeile vom Geraet (GUI-Meldung nach fehlgeschlagenem Schreiben).</summary>
+    public string? LetzteFehlerzeile { get; private set; }
+
+    /// <summary>
+    /// Eine Maschineinstellung am Geraet setzen ($<schluessel>=<wert>) — GRBL speichert dauerhaft
+    /// im EEPROM (Paritaet zu LightBurns „Machine Settings → GRBL Configuration → Write to device").
+    /// Injektion-Schranke: Nur '$' + key ohne '=' akzeptiert.
+    /// </summary>
+    public bool EinstellungSetzen(string schluessel, string wert, int timeoutMs = 4000)
+    {
+        var k = schluessel.Trim();
+        if (!k.StartsWith('$')) k = "$" + k;
+        if (k.Contains('=') || k.Contains('\r') || k.Contains('\n') || k.Contains('"') || wert.Contains('\r') || wert.Contains('\n'))
+        {
+            LetzteFehlerzeile = "error: ungueltiger Schlussel oder Wert";
+            return false;
+        }
+        LetzteFehlerzeile = null;
+        _v.Transport.SchreibenZeile(k + "=" + wert);
+        var ende = DateTime.UtcNow.AddMilliseconds(timeoutMs);
+        while (DateTime.UtcNow < ende)
+        {
+            var z = _v.Transport.LesenZeile(200);
+            if (z is null) continue;
+            var t = z.Trim();
+            if (t == "ok") return true;
+            if (t.StartsWith("error", StringComparison.OrdinalIgnoreCase))
+            {
+                LetzteFehlerzeile = t;
+                return false;
+            }
+        }
+        LetzteFehlerzeile = "error: keine Antwort vom Geraet";
+        return false;
+    }
     /// <summary>Homing bei Start ("$H" + bis 60s auf ok).</summary>
     public bool HomeMitWarten(int timeoutMs = 60000)
     {
